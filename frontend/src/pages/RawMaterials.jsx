@@ -52,6 +52,8 @@ export default function RawMaterials() {
     const [materials, setMaterials] = useState([]);
     const [formulations, setFormulations] = useState([]);
     const [mixingBatches, setMixingBatches] = useState([]);
+    const [dbCategories, setDbCategories] = useState([]);
+    const [dbUnits, setDbUnits] = useState([]);
     const [stats, setStats] = useState({
         total_materials: 0,
         total_valuation_inr: "0.00",
@@ -68,6 +70,49 @@ export default function RawMaterials() {
     // Filters for materials
     const [searchQuery, setSearchQuery] = useState("");
     const [categoryFilter, setCategoryFilter] = useState("");
+
+    // Modal: Add New Material / Item
+    const [showAddModal, setShowAddModal] = useState(false);
+    const [addForm, setAddForm] = useState({
+        material_code: "",
+        material_name: "",
+        category_id: "",
+        unit_id: "",
+        grade: "",
+        minimum_stock: "",
+        reorder_level: "",
+        standard_purchase_rate: "",
+        initial_stock_qty: "",
+        batch_number: "",
+        location_rack: ""
+    });
+    const [addSubmitting, setAddSubmitting] = useState(false);
+
+    // Modal: Quick Stock Adjustment (+Add / -Deduct)
+    const [showAdjustModal, setShowAdjustModal] = useState(false);
+    const [adjustTargetMaterial, setAdjustTargetMaterial] = useState(null);
+    const [adjustForm, setAdjustForm] = useState({
+        type: "ADD",
+        quantity: "",
+        reason: "PURCHASE",
+        batch_number: "",
+        remarks: ""
+    });
+    const [adjustSubmitting, setAdjustSubmitting] = useState(false);
+
+    // Modal: Edit Material
+    const [showEditModal, setShowEditModal] = useState(false);
+    const [editMaterial, setEditMaterial] = useState(null);
+    const [editForm, setEditForm] = useState({
+        material_name: "",
+        category_id: "",
+        unit_id: "",
+        grade: "",
+        minimum_stock: "",
+        reorder_level: "",
+        standard_purchase_rate: ""
+    });
+    const [editSubmitting, setEditSubmitting] = useState(false);
 
     // Modal: New Mixing Batch
     const [showMixingModal, setShowMixingModal] = useState(false);
@@ -97,22 +142,35 @@ export default function RawMaterials() {
         setLoading(true);
         setError(null);
         try {
-            const [matRes, statsRes, formRes, mixRes] = await Promise.all([
+            const [matRes, statsRes, formRes, mixRes, metaRes] = await Promise.all([
                 fetch(`${API_BASE}/raw-materials`),
                 fetch(`${API_BASE}/raw-materials/stats`),
                 fetch(`${API_BASE}/raw-materials/formulations`),
-                fetch(`${API_BASE}/raw-materials/mixing-batches`)
+                fetch(`${API_BASE}/raw-materials/mixing-batches`),
+                fetch(`${API_BASE}/raw-materials/metadata`)
             ]);
 
-            const [mJson, sJson, fJson, bJson] = await Promise.all([
+            const [mJson, sJson, fJson, bJson, metaJson] = await Promise.all([
                 matRes.json(),
                 statsRes.json(),
                 formRes.json(),
-                mixRes.json()
+                mixRes.json(),
+                metaRes.json()
             ]);
 
             if (mJson.success) setMaterials(mJson.data || []);
             if (sJson.success) setStats(sJson.data || {});
+            if (metaJson.success && metaJson.data) {
+                setDbCategories(metaJson.data.categories || []);
+                setDbUnits(metaJson.data.units || []);
+                if (metaJson.data.categories?.length > 0 && !addForm.category_id) {
+                    setAddForm(prev => ({ ...prev, category_id: String(metaJson.data.categories[0].id) }));
+                }
+                if (metaJson.data.units?.length > 0 && !addForm.unit_id) {
+                    const kgUnit = metaJson.data.units.find(u => u.symbol === "KG") || metaJson.data.units[0];
+                    setAddForm(prev => ({ ...prev, unit_id: String(kgUnit.id) }));
+                }
+            }
             if (fJson.success) {
                 setFormulations(fJson.data || []);
                 if (fJson.data?.length > 0 && !selectedFormulationId) {
@@ -194,6 +252,131 @@ export default function RawMaterials() {
         }
     };
 
+    // =========================================================
+    // CREATE NEW RAW MATERIAL
+    // =========================================================
+    const handleCreateMaterial = async (e) => {
+        e.preventDefault();
+        setError(null);
+        setAddSubmitting(true);
+        try {
+            const res = await fetch(`${API_BASE}/raw-materials`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(addForm)
+            });
+            const json = await res.json();
+            if (json.success) {
+                setSuccessMessage(json.message || "Material added to inventory successfully!");
+                setShowAddModal(false);
+                setAddForm({
+                    material_code: "",
+                    material_name: "",
+                    category_id: dbCategories[0]?.id ? String(dbCategories[0].id) : "",
+                    unit_id: dbUnits[0]?.id ? String(dbUnits[0].id) : "",
+                    grade: "",
+                    minimum_stock: "",
+                    reorder_level: "",
+                    standard_purchase_rate: "",
+                    initial_stock_qty: "",
+                    batch_number: "",
+                    location_rack: ""
+                });
+                await loadData();
+            } else {
+                setError(json.message || "Failed to create material");
+            }
+        } catch (err) {
+            console.error("Create material error:", err);
+            setError("Server error while adding new inventory item.");
+        } finally {
+            setAddSubmitting(false);
+        }
+    };
+
+    // =========================================================
+    // QUICK STOCK ADJUSTMENT (+ADD / -DEDUCT)
+    // =========================================================
+    const handleAdjustStock = async (e) => {
+        e.preventDefault();
+        if (!adjustTargetMaterial) return;
+        setError(null);
+        setAdjustSubmitting(true);
+        try {
+            const res = await fetch(`${API_BASE}/raw-materials/${adjustTargetMaterial.id}/adjust-stock`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(adjustForm)
+            });
+            const json = await res.json();
+            if (json.success) {
+                setSuccessMessage(json.message || "Stock adjusted successfully!");
+                setShowAdjustModal(false);
+                setAdjustTargetMaterial(null);
+                await loadData();
+            } else {
+                setError(json.message || "Failed to adjust stock");
+            }
+        } catch (err) {
+            console.error("Adjust stock error:", err);
+            setError("Server error while adjusting stock.");
+        } finally {
+            setAdjustSubmitting(false);
+        }
+    };
+
+    // =========================================================
+    // UPDATE MATERIAL DETAILS
+    // =========================================================
+    const handleUpdateMaterial = async (e) => {
+        e.preventDefault();
+        if (!editMaterial) return;
+        setError(null);
+        setEditSubmitting(true);
+        try {
+            const res = await fetch(`${API_BASE}/raw-materials/${editMaterial.id}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(editForm)
+            });
+            const json = await res.json();
+            if (json.success) {
+                setSuccessMessage("Material updated successfully!");
+                setShowEditModal(false);
+                setEditMaterial(null);
+                await loadData();
+            } else {
+                setError(json.message || "Failed to update material");
+            }
+        } catch (err) {
+            console.error("Update material error:", err);
+            setError("Server error while updating material.");
+        } finally {
+            setEditSubmitting(false);
+        }
+    };
+
+    // =========================================================
+    // DELETE MATERIAL
+    // =========================================================
+    const handleDeleteMaterial = async (id, name) => {
+        if (!window.confirm(`Are you sure you want to deactivate "${name}" from inventory?`)) return;
+        setError(null);
+        try {
+            const res = await fetch(`${API_BASE}/raw-materials/${id}`, { method: "DELETE" });
+            const json = await res.json();
+            if (json.success) {
+                setSuccessMessage(`Material "${name}" removed.`);
+                await loadData();
+            } else {
+                setError(json.message || "Failed to delete material");
+            }
+        } catch (err) {
+            console.error("Delete material error:", err);
+            setError("Server error while deleting material.");
+        }
+    };
+
     // Issue to Line
     const handleIssueBatch = async (batchId) => {
         try {
@@ -272,10 +455,17 @@ export default function RawMaterials() {
             ================================================= */}
             <div className="rm-header-card">
                 <div className="rm-header-info">
-                    <h1>Raw Materials</h1>
-                    <p>Chemical inventory, plastisol formulations & paste mixing station.</p>
+                    <h1>Inventory & Raw Materials</h1>
+                    <p>Track raw materials, chemicals, consumables, formulations & warehouse stocks.</p>
                 </div>
                 <div className="rm-header-actions">
+                    <button
+                        type="button"
+                        className="rm-tab-btn primary"
+                        onClick={() => setShowAddModal(true)}
+                    >
+                        <Plus size={15} /> Add New Material / Item
+                    </button>
                     <button
                         type="button"
                         className="rm-refresh-btn"
@@ -294,7 +484,7 @@ export default function RawMaterials() {
                     </button>
                     <button
                         type="button"
-                        className="rm-tab-btn primary"
+                        className="rm-tab-btn"
                         onClick={() => {
                             if (activeFormulation) {
                                 setMixingForm(prev => ({
@@ -305,7 +495,7 @@ export default function RawMaterials() {
                             setShowMixingModal(true);
                         }}
                     >
-                        <Plus size={15} /> Log Mixing Batch
+                        <FlaskConical size={15} /> Log Mixing Batch
                     </button>
                 </div>
             </div>
@@ -317,7 +507,7 @@ export default function RawMaterials() {
                     className={`rm-tab-item ${activeTab === "stock" ? "active" : ""}`}
                     onClick={() => setActiveTab("stock")}
                 >
-                    <Database size={15} /> Chemical Stock
+                    <Database size={15} /> Chemical & Raw Material Stock
                 </button>
                 <button
                     type="button"
@@ -414,7 +604,7 @@ export default function RawMaterials() {
                             <Search size={15} />
                             <input
                                 type="text"
-                                placeholder="Search by Chemical Code, Name, Grade..."
+                                placeholder="Search by Material Code, Name, Grade..."
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
                             />
@@ -425,8 +615,8 @@ export default function RawMaterials() {
                                 value={categoryFilter}
                                 onChange={(e) => setCategoryFilter(e.target.value)}
                             >
-                                <option value="">All Chemical Categories</option>
-                                {categories.map(c => (
+                                <option value="">All Categories</option>
+                                {dbCategories.map(c => (
                                     <option key={c.id} value={c.id}>{c.name}</option>
                                 ))}
                             </select>
@@ -443,6 +633,15 @@ export default function RawMaterials() {
                                     Clear
                                 </button>
                             )}
+
+                            <button
+                                type="button"
+                                className="rm-tab-btn primary"
+                                style={{ marginLeft: "auto" }}
+                                onClick={() => setShowAddModal(true)}
+                            >
+                                <Plus size={14} /> Add Item
+                            </button>
                         </div>
                     </div>
 
@@ -455,21 +654,22 @@ export default function RawMaterials() {
                                     <th>Technical Grade / Spec</th>
                                     <th>Available Stock</th>
                                     <th>Reorder Level</th>
-                                    <th>Rate (₹ / kg)</th>
+                                    <th>Rate (₹ / Unit)</th>
                                     <th>Total Valuation</th>
                                     <th>Stock Status</th>
+                                    <th style={{ textAlign: "center", width: "170px" }}>Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {loading && materials.length === 0 ? (
                                     <tr>
-                                        <td colSpan="8" className="rm-td-center">
-                                            <RefreshCw className="rm-spin" size={18} /> Loading chemical catalog...
+                                        <td colSpan="9" className="rm-td-center">
+                                            <RefreshCw className="rm-spin" size={18} /> Loading inventory catalog...
                                         </td>
                                     </tr>
                                 ) : filteredMaterials.length === 0 ? (
                                     <tr>
-                                        <td colSpan="8" className="rm-td-center">
+                                        <td colSpan="9" className="rm-td-center">
                                             No raw materials found matching filters.
                                         </td>
                                     </tr>
@@ -511,6 +711,56 @@ export default function RawMaterials() {
                                                     <span className={`rm-stock-pill ${isLow ? "low" : "healthy"}`}>
                                                         {isLow ? "Reorder Alert" : "Healthy Buffer"}
                                                     </span>
+                                                </td>
+                                                <td style={{ textAlign: "center", whiteSpace: "nowrap" }}>
+                                                    <div style={{ display: "inline-flex", gap: "6px" }}>
+                                                        <button
+                                                            type="button"
+                                                            className="rm-row-btn stock"
+                                                            title="Quick Add / Deduct Stock"
+                                                            onClick={() => {
+                                                                setAdjustTargetMaterial(mat);
+                                                                setAdjustForm({
+                                                                    type: "ADD",
+                                                                    quantity: "",
+                                                                    reason: "PURCHASE",
+                                                                    batch_number: "",
+                                                                    remarks: ""
+                                                                });
+                                                                setShowAdjustModal(true);
+                                                            }}
+                                                        >
+                                                            <Plus size={12} /> Stock
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            className="rm-row-btn edit"
+                                                            title="Edit Details"
+                                                            onClick={() => {
+                                                                setEditMaterial(mat);
+                                                                setEditForm({
+                                                                    material_name: mat.material_name,
+                                                                    category_id: mat.category_id || "",
+                                                                    unit_id: mat.unit_id || "",
+                                                                    grade: mat.grade || "",
+                                                                    minimum_stock: mat.minimum_stock || 0,
+                                                                    reorder_level: mat.reorder_level || 0,
+                                                                    standard_purchase_rate: mat.standard_purchase_rate || 0
+                                                                });
+                                                                setShowEditModal(true);
+                                                            }}
+                                                        >
+                                                            Edit
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            className="rm-row-btn delete"
+                                                            title="Remove Item"
+                                                            onClick={() => handleDeleteMaterial(mat.id, mat.material_name)}
+                                                        >
+                                                            <X size={12} />
+                                                        </button>
+                                                    </div>
                                                 </td>
                                             </tr>
                                         );
@@ -953,6 +1203,441 @@ export default function RawMaterials() {
                                     className="rm-btn-save-batch"
                                 >
                                     <CheckCircle2 size={16} /> Complete Batch & Update Inventory
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* ================================================= 
+               MODAL: ADD NEW RAW MATERIAL / INVENTORY ITEM
+            ================================================= */}
+            {showAddModal && (
+                <div className="rm-modal-backdrop" onClick={() => setShowAddModal(false)}>
+                    <div className="rm-modal-card" onClick={(e) => e.stopPropagation()}>
+                        <div className="rm-modal-header">
+                            <div>
+                                <span className="rm-eyebrow">INVENTORY MASTER</span>
+                                <h2>Add New Material / Inventory Item</h2>
+                            </div>
+                            <button
+                                type="button"
+                                className="rm-modal-close"
+                                onClick={() => setShowAddModal(false)}
+                            >
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        <form onSubmit={handleCreateMaterial} className="rm-modal-form">
+                            <div className="rm-form-grid">
+                                <div className="rm-form-field">
+                                    <label>Material / Item Name *</label>
+                                    <input
+                                        type="text"
+                                        required
+                                        placeholder="e.g. PVC Resin K-67, Red Pigment Paste, Wooden Pallet..."
+                                        value={addForm.material_name}
+                                        onChange={(e) => setAddForm({ ...addForm, material_name: e.target.value })}
+                                    />
+                                </div>
+
+                                <div className="rm-form-field">
+                                    <label>Material Code (Optional)</label>
+                                    <input
+                                        type="text"
+                                        placeholder="Auto-generated if empty (e.g. RM-1042)"
+                                        value={addForm.material_code}
+                                        onChange={(e) => setAddForm({ ...addForm, material_code: e.target.value })}
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="rm-form-grid-3">
+                                <div className="rm-form-field">
+                                    <label>Category *</label>
+                                    <select
+                                        value={addForm.category_id}
+                                        onChange={(e) => setAddForm({ ...addForm, category_id: e.target.value })}
+                                    >
+                                        <option value="">Select Category</option>
+                                        {dbCategories.map(c => (
+                                            <option key={c.id} value={c.id}>{c.name}</option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                <div className="rm-form-field">
+                                    <label>Unit of Measure *</label>
+                                    <select
+                                        value={addForm.unit_id}
+                                        onChange={(e) => setAddForm({ ...addForm, unit_id: e.target.value })}
+                                    >
+                                        {dbUnits.map(u => (
+                                            <option key={u.id} value={u.id}>{u.name} ({u.symbol})</option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                <div className="rm-form-field">
+                                    <label>Grade / Technical Spec</label>
+                                    <input
+                                        type="text"
+                                        placeholder="e.g. Virgin K-67, 99.5% Pure"
+                                        value={addForm.grade}
+                                        onChange={(e) => setAddForm({ ...addForm, grade: e.target.value })}
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="rm-form-grid-3">
+                                <div className="rm-form-field">
+                                    <label>Purchase Rate (₹ / unit)</label>
+                                    <input
+                                        type="number"
+                                        step="0.01"
+                                        placeholder="0.00"
+                                        value={addForm.standard_purchase_rate}
+                                        onChange={(e) => setAddForm({ ...addForm, standard_purchase_rate: e.target.value })}
+                                    />
+                                </div>
+
+                                <div className="rm-form-field">
+                                    <label>Reorder Alert Level</label>
+                                    <input
+                                        type="number"
+                                        step="1"
+                                        placeholder="Minimum threshold"
+                                        value={addForm.reorder_level}
+                                        onChange={(e) => setAddForm({ ...addForm, reorder_level: e.target.value })}
+                                    />
+                                </div>
+
+                                <div className="rm-form-field">
+                                    <label>Minimum Buffer Stock</label>
+                                    <input
+                                        type="number"
+                                        step="1"
+                                        placeholder="Safety stock"
+                                        value={addForm.minimum_stock}
+                                        onChange={(e) => setAddForm({ ...addForm, minimum_stock: e.target.value })}
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Optional Initial Stock */}
+                            <div style={{ background: "#f8fafc", padding: "14px", borderRadius: "6px", border: "1px dashed #cbd5e1" }}>
+                                <div style={{ fontSize: "0.8rem", fontWeight: "700", color: "#334155", marginBottom: "8px" }}>
+                                    📦 Initial Opening Stock (Optional)
+                                </div>
+                                <div className="rm-form-grid-3">
+                                    <div className="rm-form-field">
+                                        <label>Opening Quantity</label>
+                                        <input
+                                            type="number"
+                                            step="0.01"
+                                            placeholder="e.g. 1000"
+                                            value={addForm.initial_stock_qty}
+                                            onChange={(e) => setAddForm({ ...addForm, initial_stock_qty: e.target.value })}
+                                        />
+                                    </div>
+                                    <div className="rm-form-field">
+                                        <label>Batch / Lot Number</label>
+                                        <input
+                                            type="text"
+                                            placeholder="e.g. LOT-2026-001"
+                                            value={addForm.batch_number}
+                                            onChange={(e) => setAddForm({ ...addForm, batch_number: e.target.value })}
+                                        />
+                                    </div>
+                                    <div className="rm-form-field">
+                                        <label>Storage Rack / Bay</label>
+                                        <input
+                                            type="text"
+                                            placeholder="e.g. Rack A-12, Bin 3"
+                                            value={addForm.location_rack}
+                                            onChange={(e) => setAddForm({ ...addForm, location_rack: e.target.value })}
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="rm-modal-submit-row">
+                                <button
+                                    type="button"
+                                    className="rm-tab-btn"
+                                    onClick={() => setShowAddModal(false)}
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={addSubmitting}
+                                    className="rm-btn-save-batch"
+                                >
+                                    <Plus size={16} /> Save Item to Inventory
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* ================================================= 
+               MODAL: QUICK STOCK ADJUSTMENT (+ADD / -DEDUCT)
+            ================================================= */}
+            {showAdjustModal && adjustTargetMaterial && (
+                <div className="rm-modal-backdrop" onClick={() => setShowAdjustModal(false)}>
+                    <div className="rm-modal-card" style={{ maxWidth: "520px" }} onClick={(e) => e.stopPropagation()}>
+                        <div className="rm-modal-header">
+                            <div>
+                                <span className="rm-eyebrow">STOCK ADJUSTMENT</span>
+                                <h2>{adjustTargetMaterial.material_name}</h2>
+                                <p style={{ margin: "2px 0 0", fontSize: "0.78rem", color: "#64748b" }}>
+                                    Current Stock: <strong>{Number(adjustTargetMaterial.current_stock_qty).toLocaleString()} {adjustTargetMaterial.unit_symbol || "KG"}</strong>
+                                </p>
+                            </div>
+                            <button
+                                type="button"
+                                className="rm-modal-close"
+                                onClick={() => setShowAdjustModal(false)}
+                            >
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        <form onSubmit={handleAdjustStock} className="rm-modal-form">
+                            {/* Toggle Add vs Deduct */}
+                            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", background: "#f1f5f9", padding: "4px", borderRadius: "6px" }}>
+                                <button
+                                    type="button"
+                                    style={{
+                                        padding: "8px",
+                                        borderRadius: "5px",
+                                        fontWeight: "700",
+                                        fontSize: "0.82rem",
+                                        border: "none",
+                                        cursor: "pointer",
+                                        background: adjustForm.type === "ADD" ? "#10b981" : "transparent",
+                                        color: adjustForm.type === "ADD" ? "#ffffff" : "#64748b"
+                                    }}
+                                    onClick={() => setAdjustForm({ ...adjustForm, type: "ADD", reason: "PURCHASE" })}
+                                >
+                                    + Add Stock (Inward)
+                                </button>
+                                <button
+                                    type="button"
+                                    style={{
+                                        padding: "8px",
+                                        borderRadius: "5px",
+                                        fontWeight: "700",
+                                        fontSize: "0.82rem",
+                                        border: "none",
+                                        cursor: "pointer",
+                                        background: adjustForm.type === "DEDUCT" ? "#ef4444" : "transparent",
+                                        color: adjustForm.type === "DEDUCT" ? "#ffffff" : "#64748b"
+                                    }}
+                                    onClick={() => setAdjustForm({ ...adjustForm, type: "DEDUCT", reason: "PRODUCTION_ISSUE" })}
+                                >
+                                    - Deduct Stock (Used/Spill)
+                                </button>
+                            </div>
+
+                            <div className="rm-form-field">
+                                <label>Quantity to {adjustForm.type === "ADD" ? "Add" : "Deduct"} ({adjustTargetMaterial.unit_symbol || "KG"}) *</label>
+                                <input
+                                    type="number"
+                                    step="0.01"
+                                    required
+                                    placeholder="Enter quantity"
+                                    value={adjustForm.quantity}
+                                    onChange={(e) => setAdjustForm({ ...adjustForm, quantity: e.target.value })}
+                                />
+                            </div>
+
+                            <div className="rm-form-field">
+                                <label>Reason / Transaction Type</label>
+                                <select
+                                    value={adjustForm.reason}
+                                    onChange={(e) => setAdjustForm({ ...adjustForm, reason: e.target.value })}
+                                >
+                                    {adjustForm.type === "ADD" ? (
+                                        <>
+                                            <option value="PURCHASE">Supplier Inward / Purchase</option>
+                                            <option value="PHYSICAL_AUDIT">Physical Audit Found Stock</option>
+                                            <option value="RETURN">Customer / Production Floor Return</option>
+                                            <option value="SAMPLE_INWARD">Free Sample Inward</option>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <option value="PRODUCTION_ISSUE">Issued to Production Floor</option>
+                                            <option value="DAMAGE_OR_SPILL">Spillage / Bag Damage</option>
+                                            <option value="PHYSICAL_AUDIT_SHORTAGE">Physical Stock Audit Shortage</option>
+                                            <option value="EXPIRED">Quality Rejected / Expired</option>
+                                            <option value="RETURN_TO_VENDOR">Return to Vendor</option>
+                                        </>
+                                    )}
+                                </select>
+                            </div>
+
+                            <div className="rm-form-field">
+                                <label>Batch / Lot Number (Optional)</label>
+                                <input
+                                    type="text"
+                                    placeholder="Auto-generated if empty"
+                                    value={adjustForm.batch_number}
+                                    onChange={(e) => setAdjustForm({ ...adjustForm, batch_number: e.target.value })}
+                                />
+                            </div>
+
+                            <div className="rm-form-field">
+                                <label>Remarks / Notes</label>
+                                <input
+                                    type="text"
+                                    placeholder="e.g. Challan #982 or Physical stock check"
+                                    value={adjustForm.remarks}
+                                    onChange={(e) => setAdjustForm({ ...adjustForm, remarks: e.target.value })}
+                                />
+                            </div>
+
+                            <div className="rm-modal-submit-row">
+                                <button
+                                    type="button"
+                                    className="rm-tab-btn"
+                                    onClick={() => setShowAdjustModal(false)}
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={adjustSubmitting}
+                                    className="rm-btn-save-batch"
+                                    style={{
+                                        background: adjustForm.type === "ADD" ? "#10b981" : "#ef4444"
+                                    }}
+                                >
+                                    {adjustForm.type === "ADD" ? "Confirm Add Stock" : "Confirm Deduct Stock"}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* ================================================= 
+               MODAL: EDIT MATERIAL DETAILS
+            ================================================= */}
+            {showEditModal && editMaterial && (
+                <div className="rm-modal-backdrop" onClick={() => setShowEditModal(false)}>
+                    <div className="rm-modal-card" onClick={(e) => e.stopPropagation()}>
+                        <div className="rm-modal-header">
+                            <div>
+                                <span className="rm-eyebrow">EDIT INVENTORY ITEM</span>
+                                <h2>Edit {editMaterial.material_name}</h2>
+                            </div>
+                            <button
+                                type="button"
+                                className="rm-modal-close"
+                                onClick={() => setShowEditModal(false)}
+                            >
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        <form onSubmit={handleUpdateMaterial} className="rm-modal-form">
+                            <div className="rm-form-field">
+                                <label>Material / Item Name *</label>
+                                <input
+                                    type="text"
+                                    required
+                                    value={editForm.material_name}
+                                    onChange={(e) => setEditForm({ ...editForm, material_name: e.target.value })}
+                                />
+                            </div>
+
+                            <div className="rm-form-grid-3">
+                                <div className="rm-form-field">
+                                    <label>Category</label>
+                                    <select
+                                        value={editForm.category_id}
+                                        onChange={(e) => setEditForm({ ...editForm, category_id: e.target.value })}
+                                    >
+                                        <option value="">Select Category</option>
+                                        {dbCategories.map(c => (
+                                            <option key={c.id} value={c.id}>{c.name}</option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                <div className="rm-form-field">
+                                    <label>Unit of Measure</label>
+                                    <select
+                                        value={editForm.unit_id}
+                                        onChange={(e) => setEditForm({ ...editForm, unit_id: e.target.value })}
+                                    >
+                                        {dbUnits.map(u => (
+                                            <option key={u.id} value={u.id}>{u.name} ({u.symbol})</option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                <div className="rm-form-field">
+                                    <label>Grade / Specification</label>
+                                    <input
+                                        type="text"
+                                        value={editForm.grade || ""}
+                                        onChange={(e) => setEditForm({ ...editForm, grade: e.target.value })}
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="rm-form-grid-3">
+                                <div className="rm-form-field">
+                                    <label>Purchase Rate (₹ / unit)</label>
+                                    <input
+                                        type="number"
+                                        step="0.01"
+                                        value={editForm.standard_purchase_rate}
+                                        onChange={(e) => setEditForm({ ...editForm, standard_purchase_rate: e.target.value })}
+                                    />
+                                </div>
+
+                                <div className="rm-form-field">
+                                    <label>Reorder Alert Level</label>
+                                    <input
+                                        type="number"
+                                        step="1"
+                                        value={editForm.reorder_level}
+                                        onChange={(e) => setEditForm({ ...editForm, reorder_level: e.target.value })}
+                                    />
+                                </div>
+
+                                <div className="rm-form-field">
+                                    <label>Minimum Buffer Stock</label>
+                                    <input
+                                        type="number"
+                                        step="1"
+                                        value={editForm.minimum_stock}
+                                        onChange={(e) => setEditForm({ ...editForm, minimum_stock: e.target.value })}
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="rm-modal-submit-row">
+                                <button
+                                    type="button"
+                                    className="rm-tab-btn"
+                                    onClick={() => setShowEditModal(false)}
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={editSubmitting}
+                                    className="rm-btn-save-batch"
+                                >
+                                    Save Changes
                                 </button>
                             </div>
                         </form>

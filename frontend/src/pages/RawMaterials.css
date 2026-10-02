@@ -856,3 +856,51 @@
     opacity: 0.6;
     cursor: not-allowed;
 }
+
+/* Row Action Buttons */
+.rm-row-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.rm-row-btn.stock {
+    background: #ecfdf5;
+    color: #065f46;
+    border-color: #a7f3d0;
+}
+.rm-row-btn.stock:hover {
+    background: #10b981;
+    color: #ffffff;
+    border-color: #10b981;
+}
+
+.rm-row-btn.edit {
+    background: #f1f5f9;
+    color: #334155;
+    border-color: #cbd5e1;
+}
+.rm-row-btn.edit:hover {
+    background: #0f172a;
+    color: #ffffff;
+    border-color: #0f172a;
+}
+
+.rm-row-btn.delete {
+    background: #fef2f2;
+    color: #991b1b;
+    border-color: #fecaca;
+}
+.rm-row-btn.delete:hover {
+    background: #ef4444;
+    color: #ffffff;
+    border-color: #ef4444;
+}
+
