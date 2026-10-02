@@ -72,22 +72,15 @@ export const ROLE_PERMISSIONS = {
         "/reports/quality"
     ],
 
-    // 7. Store & Warehouse Manager (Raw Materials, Inward GRN & Finished Goods Dispatch)
+    // 7. Store & Warehouse Manager / Inventory Head (Strictly Inventory Only)
     STORE_MANAGER: [
-        "/",
-        "/suppliers",
-        "/raw-materials",
-        "/raw-material-stock",
-        "/chemical-mixing",
         "/material-receipt",
         "/material-receipts",
         "/material-issue",
+        "/raw-material-stock",
         "/wip",
         "/finished-goods",
         "/stock-transactions",
-        "/dispatch",
-        "/dispatches",
-        "/roll-scanner",
         "/reports/inventory"
     ],
 
@@ -100,6 +93,18 @@ export const ROLE_PERMISSIONS = {
         "/dispatch",
         "/dispatches"
     ]
+};
+
+export const getDefaultRoute = (roleName) => {
+    const normalized = normalizeRoleName(roleName);
+    switch (normalized) {
+        case "STORE_MANAGER":
+            return "/material-receipt";
+        case "OPERATOR":
+            return "/production-entry";
+        default:
+            return "/";
+    }
 };
 
 const normalizeRoleName = (roleName) => {
