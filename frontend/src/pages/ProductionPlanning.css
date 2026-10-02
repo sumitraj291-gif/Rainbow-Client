@@ -1,0 +1,779 @@
+/* =========================================================
+   PRODUCTION PLANNING & SCHEDULING CONTROL
+   Pristine Light Industrial Aesthetic
+   ========================================================= */
+
+.pp-page {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    padding-bottom: 60px;
+}
+
+/* Header Card */
+.pp-header-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 18px 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.pp-header-info h1 {
+    font-size: 1.45rem;
+    font-weight: 700;
+    color: #0f172a;
+    margin: 0 0 4px;
+    letter-spacing: -0.02em;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.pp-header-badge {
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: #0284c7;
+    background: #e0f2fe;
+    border: 1px solid #bae6fd;
+    padding: 2px 8px;
+    border-radius: 20px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.pp-header-info p {
+    font-size: 0.84rem;
+    color: #64748b;
+    margin: 0;
+}
+
+.pp-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.pp-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 8px 16px;
+    font-size: 0.84rem;
+    font-weight: 600;
+    border-radius: 7px;
+    border: 1px solid #cbd5e1;
+    background: #ffffff;
+    color: #334155;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.pp-btn:hover {
+    background: #f8fafc;
+    border-color: #94a3b8;
+}
+
+.pp-btn.primary {
+    background: #0284c7;
+    color: #ffffff;
+    border-color: #0284c7;
+}
+
+.pp-btn.primary:hover {
+    background: #0369a1;
+}
+
+.pp-refresh-btn {
+    width: 36px;
+    height: 36px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #cbd5e1;
+    background: #ffffff;
+    color: #475569;
+    border-radius: 7px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.pp-refresh-btn:hover {
+    background: #f1f5f9;
+    color: #0f172a;
+}
+
+.pp-spin {
+    animation: ppSpin 0.8s linear infinite;
+}
+
+@keyframes ppSpin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+/* Alert Notification */
+.pp-alert {
+    padding: 10px 16px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 0.86rem;
+    font-weight: 500;
+}
+
+.pp-alert-content {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.pp-alert.error {
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    color: #991b1b;
+}
+
+.pp-alert.success {
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    color: #166534;
+}
+
+.pp-alert-close {
+    background: transparent;
+    border: none;
+    font-size: 1.1rem;
+    line-height: 1;
+    cursor: pointer;
+    color: inherit;
+    opacity: 0.7;
+    display: flex;
+    align-items: center;
+}
+
+/* KPI Summary Stat Cards */
+.pp-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+    gap: 14px;
+}
+
+.pp-stat-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 16px 18px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.pp-stat-icon-wrap {
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.pp-stat-icon-wrap.blue { background: #e0f2fe; color: #0284c7; }
+.pp-stat-icon-wrap.amber { background: #fef3c7; color: #d97706; }
+.pp-stat-icon-wrap.indigo { background: #e0e7ff; color: #4f46e5; }
+.pp-stat-icon-wrap.emerald { background: #dcfce7; color: #16a34a; }
+.pp-stat-icon-wrap.purple { background: #f3e8ff; color: #9333ea; }
+
+.pp-stat-content {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.pp-stat-label {
+    font-size: 0.76rem;
+    font-weight: 600;
+    color: #64748b;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.pp-stat-val {
+    font-size: 1.45rem;
+    font-weight: 700;
+    color: #0f172a;
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+}
+
+.pp-stat-sub {
+    font-size: 0.72rem;
+    color: #94a3b8;
+    margin-top: 1px;
+}
+
+/* Tab Navigation Strip */
+.pp-nav-strip {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 6px 10px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+}
+
+.pp-tabs {
+    display: flex;
+    gap: 6px;
+}
+
+.pp-tab-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 8px 16px;
+    font-size: 0.84rem;
+    font-weight: 600;
+    border-radius: 7px;
+    border: none;
+    background: transparent;
+    color: #64748b;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.pp-tab-btn:hover {
+    color: #0f172a;
+    background: #f8fafc;
+}
+
+.pp-tab-btn.active {
+    background: #0284c7;
+    color: #ffffff;
+}
+
+.pp-tab-badge {
+    padding: 2px 7px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    border-radius: 12px;
+    background: rgba(0, 0, 0, 0.08);
+}
+
+.pp-tab-btn.active .pp-tab-badge {
+    background: rgba(255, 255, 255, 0.25);
+    color: #ffffff;
+}
+
+.pp-nav-extra {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding-right: 8px;
+    font-size: 0.8rem;
+    color: #64748b;
+}
+
+/* =========================================================
+   TAB 1: WEEKLY TIMELINE & SHIFT ROSTER
+   ========================================================= */
+
+.pp-timeline-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+}
+
+.pp-card-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid #e2e8f0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #fafafa;
+}
+
+.pp-card-header h3 {
+    margin: 0;
+    font-size: 0.98rem;
+    font-weight: 700;
+    color: #0f172a;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.pp-card-header p {
+    margin: 2px 0 0;
+    font-size: 0.78rem;
+    color: #64748b;
+}
+
+.pp-timeline-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1px;
+    background: #e2e8f0;
+}
+
+.pp-day-col {
+    background: #ffffff;
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-height: 380px;
+}
+
+.pp-day-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #f1f5f9;
+}
+
+.pp-day-title {
+    display: flex;
+    flex-direction: column;
+}
+
+.pp-day-name {
+    font-weight: 700;
+    font-size: 0.88rem;
+    color: #0f172a;
+}
+
+.pp-day-date {
+    font-size: 0.72rem;
+    color: #64748b;
+}
+
+.pp-day-col.is-today .pp-day-header {
+    border-bottom-color: #0284c7;
+}
+
+.pp-day-badge-today {
+    font-size: 0.68rem;
+    font-weight: 700;
+    color: #0284c7;
+    background: #e0f2fe;
+    padding: 2px 6px;
+    border-radius: 4px;
+    text-transform: uppercase;
+}
+
+.pp-order-schedule-card {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-left: 3px solid #0284c7;
+    border-radius: 6px;
+    padding: 10px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    transition: all 0.15s ease;
+}
+
+.pp-order-schedule-card:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    background: #ffffff;
+    border-color: #cbd5e1;
+    border-left-color: #0284c7;
+}
+
+.pp-order-schedule-card.high-priority {
+    border-left-color: #f59e0b;
+}
+
+.pp-order-schedule-card.urgent-priority {
+    border-left-color: #ef4444;
+}
+
+.pp-card-top-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.pp-card-po {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #0284c7;
+}
+
+.pp-card-shift {
+    font-size: 0.68rem;
+    font-weight: 700;
+    color: #475569;
+    background: #e2e8f0;
+    padding: 2px 6px;
+    border-radius: 4px;
+    text-transform: uppercase;
+}
+
+.pp-card-product {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: #1e293b;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.pp-card-details {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.74rem;
+    color: #64748b;
+    padding-top: 4px;
+    border-top: 1px dashed #e2e8f0;
+}
+
+.pp-card-target strong {
+    color: #0f172a;
+    font-weight: 700;
+}
+
+.pp-day-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 10px;
+    color: #94a3b8;
+    text-align: center;
+    font-size: 0.78rem;
+    font-style: italic;
+    border: 1px dashed #e2e8f0;
+    border-radius: 6px;
+    margin-top: auto;
+    margin-bottom: auto;
+}
+
+/* =========================================================
+   TAB 2: MACHINE LINE CAPACITY & LOAD
+   ========================================================= */
+
+.pp-machines-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 16px;
+}
+
+.pp-machine-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 18px 20px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.pp-machine-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+}
+
+.pp-machine-title {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.pp-machine-code {
+    font-size: 0.74rem;
+    font-weight: 700;
+    color: #0284c7;
+    letter-spacing: 0.03em;
+}
+
+.pp-machine-name {
+    font-size: 0.94rem;
+    font-weight: 700;
+    color: #0f172a;
+    line-height: 1.25;
+}
+
+.pp-machine-type {
+    font-size: 0.74rem;
+    color: #64748b;
+}
+
+.pp-status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 8px;
+    border-radius: 20px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.pp-status-pill.running {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.pp-status-pill.idle {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.pp-status-pill.maintenance {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.pp-status-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+}
+
+.pp-machine-metrics {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 10px 14px;
+}
+
+.pp-metric-item {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.pp-metric-label {
+    font-size: 0.72rem;
+    color: #64748b;
+    font-weight: 600;
+}
+
+.pp-metric-val {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.pp-utilization-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.pp-util-label-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #475569;
+}
+
+.pp-util-bar-bg {
+    width: 100%;
+    height: 7px;
+    background: #e2e8f0;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.pp-util-bar-fill {
+    height: 100%;
+    background: #0284c7;
+    border-radius: 4px;
+    transition: width 0.3s ease;
+}
+
+.pp-util-bar-fill.optimal {
+    background: #16a34a;
+}
+
+.pp-util-bar-fill.high {
+    background: #f59e0b;
+}
+
+/* =========================================================
+   TAB 3: SALES DEMAND & BACKLOG REGISTER
+   ========================================================= */
+
+.pp-demand-table-wrap {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.pp-table {
+    width: 100%;
+    min-width: 950px;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+    text-align: left;
+}
+
+.pp-table th {
+    background: #f8fafc;
+    color: #475569;
+    font-weight: 700;
+    font-size: 0.74rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 12px 16px;
+    border-bottom: 1px solid #e2e8f0;
+    white-space: nowrap;
+}
+
+.pp-table td {
+    padding: 12px 16px;
+    border-bottom: 1px solid #f1f5f9;
+    color: #334155;
+    vertical-align: middle;
+}
+
+.pp-table tr:hover td {
+    background: #f8fafc;
+}
+
+.pp-action-btn-plan {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 12px;
+    background: #0284c7;
+    color: #ffffff;
+    font-size: 0.76rem;
+    font-weight: 600;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    white-space: nowrap;
+}
+
+.pp-action-btn-plan:hover {
+    background: #0369a1;
+}
+
+/* =========================================================
+   MODAL STYLES (QUICK PLAN SCHEDULER)
+   ========================================================= */
+
+.pp-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.45);
+    backdrop-filter: blur(3px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 16px;
+}
+
+.pp-modal {
+    background: #ffffff;
+    width: 100%;
+    max-width: 650px;
+    border-radius: 12px;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    display: flex;
+    flex-direction: column;
+    max-height: 90vh;
+    overflow: hidden;
+}
+
+.pp-modal-header {
+    padding: 16px 22px;
+    border-bottom: 1px solid #e2e8f0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #fafafa;
+}
+
+.pp-modal-header h2 {
+    margin: 0;
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.pp-modal-body {
+    padding: 20px 22px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.pp-form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+}
+
+.pp-form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.pp-form-group.full-width {
+    grid-column: span 2;
+}
+
+.pp-form-group label {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: #334155;
+}
+
+.pp-form-group input,
+.pp-form-group select,
+.pp-form-group textarea {
+    padding: 9px 12px;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    font-size: 0.86rem;
+    color: #0f172a;
+    outline: none;
+    transition: all 0.15s ease;
+    background: #ffffff;
+}
+
+.pp-form-group input:focus,
+.pp-form-group select:focus,
+.pp-form-group textarea:focus {
+    border-color: #0284c7;
+    box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.12);
+}
+
+.pp-modal-footer {
+    padding: 14px 22px;
+    border-top: 1px solid #e2e8f0;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    background: #fafafa;
+}

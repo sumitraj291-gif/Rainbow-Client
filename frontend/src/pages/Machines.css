@@ -1,0 +1,639 @@
+/* =========================================================
+   MACHINES & PLANT EQUIPMENT STYLING
+   Pristine Light Industrial Aesthetic
+========================================================= */
+
+.machines-page {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    padding-bottom: 40px;
+}
+
+/* Header Card */
+.machines-header-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 20px 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.machines-header-info h1 {
+    font-size: 1.45rem;
+    font-weight: 700;
+    color: #0f172a;
+    margin: 4px 0 6px;
+    letter-spacing: -0.02em;
+}
+
+.machines-header-info p {
+    font-size: 0.85rem;
+    color: #64748b;
+    margin: 0;
+}
+
+.machines-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    color: #7c3aed;
+    text-transform: uppercase;
+}
+
+.machines-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.machines-btn-primary {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 16px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    border-radius: 6px;
+    border: 1px solid #7c3aed;
+    background: #7c3aed;
+    color: #ffffff;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.machines-btn-primary:hover {
+    background: #6d28d9;
+    border-color: #6d28d9;
+}
+
+.machines-refresh-btn {
+    width: 36px;
+    height: 36px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #cbd5e1;
+    background: #ffffff;
+    color: #475569;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.machines-refresh-btn:hover {
+    background: #f1f5f9;
+    color: #0f172a;
+}
+
+.machines-spin {
+    animation: machines-spin 1s linear infinite;
+}
+
+@keyframes machines-spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+/* Alert Banners */
+.machines-alert {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 16px;
+    border-radius: 6px;
+    font-size: 0.84rem;
+}
+
+.machines-alert.error {
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    color: #b91c1c;
+}
+
+.machines-alert.success {
+    background: #ecfdf5;
+    border: 1px solid #a7f3d0;
+    color: #047857;
+}
+
+.machines-alert button {
+    margin-left: auto;
+    background: none;
+    border: none;
+    color: inherit;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+}
+
+/* Stats Grid */
+.machines-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+}
+
+.machines-stat-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 18px 20px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.machines-stat-card:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.machines-stat-icon-wrap {
+    width: 46px;
+    height: 46px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.machines-stat-icon-wrap.indigo {
+    background: #f5f3ff;
+    color: #7c3aed;
+}
+
+.machines-stat-icon-wrap.emerald {
+    background: #ecfdf5;
+    color: #059669;
+}
+
+.machines-stat-icon-wrap.blue {
+    background: #eff6ff;
+    color: #2563eb;
+}
+
+.machines-stat-icon-wrap.amber {
+    background: #fffbeb;
+    color: #d97706;
+}
+
+.machines-stat-content {
+    display: flex;
+    flex-direction: column;
+}
+
+.machines-stat-label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    color: #64748b;
+    text-transform: uppercase;
+}
+
+.machines-stat-val {
+    font-size: 1.45rem;
+    font-weight: 700;
+    color: #0f172a;
+    line-height: 1.25;
+    margin: 2px 0;
+}
+
+.machines-stat-sub {
+    font-size: 0.75rem;
+    color: #94a3b8;
+}
+
+/* Main Panel & Table Container */
+.machines-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+    overflow: hidden;
+}
+
+/* Toolbar & Filters */
+.machines-filter-bar {
+    padding: 14px 20px;
+    border-bottom: 1px solid #e2e8f0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+    background: #ffffff;
+}
+
+.machines-search-wrap {
+    position: relative;
+    flex: 1;
+    min-width: 260px;
+    max-width: 440px;
+}
+
+.machines-search-wrap svg {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #94a3b8;
+}
+
+.machines-search-wrap input {
+    width: 100%;
+    padding: 9px 12px 9px 36px;
+    font-size: 0.82rem;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    outline: none;
+    transition: all 0.15s;
+    box-sizing: border-box;
+}
+
+.machines-search-wrap input:focus {
+    border-color: #7c3aed;
+    box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1);
+}
+
+.machines-filter-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.machines-status-chips {
+    display: flex;
+    gap: 6px;
+}
+
+.machines-chip {
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    border: 1px solid #e2e8f0;
+    background: #f8fafc;
+    color: #475569;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.machines-chip:hover {
+    background: #f1f5f9;
+    color: #0f172a;
+}
+
+.machines-chip.active {
+    background: #0f172a;
+    color: #ffffff;
+    border-color: #0f172a;
+}
+
+/* Table Responsive Container */
+.machines-table-responsive {
+    width: 100%;
+    overflow-x: auto;
+}
+
+.machines-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.82rem;
+    text-align: left;
+}
+
+.machines-table th {
+    background: #f8fafc;
+    padding: 12px 16px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: #64748b;
+    letter-spacing: 0.05em;
+    border-bottom: 1px solid #e2e8f0;
+    white-space: nowrap;
+}
+
+.machines-table td {
+    padding: 14px 16px;
+    border-bottom: 1px solid #f1f5f9;
+    color: #334155;
+    vertical-align: middle;
+}
+
+.machines-table tr:hover td {
+    background: #f8fafc;
+}
+
+.machine-code-badge {
+    display: inline-flex;
+    align-items: center;
+    font-weight: 700;
+    color: #7c3aed;
+    font-size: 0.82rem;
+    letter-spacing: 0.02em;
+}
+
+.machine-type-tag {
+    display: inline-block;
+    padding: 2px 7px;
+    background: #f1f5f9;
+    color: #475569;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    margin-top: 3px;
+}
+
+.machine-name-title {
+    font-weight: 600;
+    color: #0f172a;
+    font-size: 0.85rem;
+}
+
+.machine-subtext {
+    font-size: 0.73rem;
+    color: #64748b;
+    margin-top: 2px;
+}
+
+.machine-capacity-cell {
+    font-weight: 700;
+    color: #0f172a;
+}
+
+/* Machine Status Badges */
+.machine-status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 11px;
+    border-radius: 20px;
+    font-size: 0.74rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.machine-status-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+}
+
+.machine-status-pill.running {
+    background: #ecfdf5;
+    color: #059669;
+    border: 1px solid #a7f3d0;
+}
+
+.machine-status-pill.idle {
+    background: #eff6ff;
+    color: #2563eb;
+    border: 1px solid #bfdbfe;
+}
+
+.machine-status-pill.maintenance {
+    background: #fffbeb;
+    color: #d97706;
+    border: 1px solid #fde68a;
+}
+
+.machine-status-pill.breakdown {
+    background: #fef2f2;
+    color: #dc2626;
+    border: 1px solid #fecaca;
+}
+
+.machine-status-pill.inactive {
+    background: #f1f5f9;
+    color: #64748b;
+    border: 1px solid #e2e8f0;
+}
+
+/* Quick Status Selector in Table */
+.machine-status-select {
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.74rem;
+    font-weight: 600;
+    border: 1px solid #cbd5e1;
+    background: #ffffff;
+    color: #334155;
+    cursor: pointer;
+    outline: none;
+}
+
+.machine-status-select:focus {
+    border-color: #7c3aed;
+}
+
+/* Actions */
+.machines-action-group {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    justify-content: flex-end;
+}
+
+.machines-btn-icon {
+    width: 30px;
+    height: 30px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 5px;
+    border: 1px solid #e2e8f0;
+    background: #ffffff;
+    color: #475569;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.machines-btn-icon:hover {
+    background: #f8fafc;
+    color: #7c3aed;
+    border-color: #cbd5e1;
+}
+
+.machines-btn-icon.delete:hover {
+    background: #fef2f2;
+    color: #dc2626;
+    border-color: #fecaca;
+}
+
+/* Footer */
+.machines-table-footer {
+    padding: 12px 20px;
+    border-top: 1px solid #e2e8f0;
+    background: #fafbfc;
+    font-size: 0.78rem;
+    color: #64748b;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+/* Empty State */
+.machines-empty-box {
+    padding: 48px 20px;
+    text-align: center;
+    color: #64748b;
+}
+
+.machines-empty-box strong {
+    font-size: 0.95rem;
+    color: #0f172a;
+    display: block;
+    margin-bottom: 6px;
+}
+
+/* Modal */
+.machine-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(15, 23, 42, 0.5);
+    backdrop-filter: blur(4px);
+    padding: 20px;
+}
+
+.machine-modal-card {
+    background: #ffffff;
+    border-radius: 10px;
+    width: min(680px, 100%);
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    border: 1px solid #e2e8f0;
+}
+
+.machine-modal-header {
+    padding: 20px 24px;
+    border-bottom: 1px solid #e2e8f0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.machine-modal-header h2 {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: #0f172a;
+    margin: 2px 0 0;
+}
+
+.machine-modal-close {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    background: #f1f5f9;
+    border-radius: 6px;
+    color: #64748b;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.machine-modal-close:hover {
+    background: #e2e8f0;
+    color: #0f172a;
+}
+
+.machine-modal-form {
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.machine-form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+
+.machine-form-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.machine-form-field label {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: #334155;
+}
+
+.machine-form-field input,
+.machine-form-field select {
+    padding: 8px 12px;
+    font-size: 0.82rem;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    outline: none;
+    transition: all 0.15s;
+}
+
+.machine-form-field input:focus,
+.machine-form-field select:focus {
+    border-color: #7c3aed;
+    box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1);
+}
+
+.machine-modal-actions {
+    padding: 16px 24px;
+    border-top: 1px solid #e2e8f0;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    background: #fafbfc;
+}
+
+.machine-btn-cancel {
+    padding: 8px 16px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    border: 1px solid #cbd5e1;
+    background: #ffffff;
+    color: #475569;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.machine-btn-cancel:hover {
+    background: #f1f5f9;
+}
+
+@media (max-width: 900px) {
+    .machines-stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 600px) {
+    .machines-stats-grid {
+        grid-template-columns: 1fr;
+    }
+    .machine-form-row {
+        grid-template-columns: 1fr;
+    }
+    .machines-filter-bar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+}
