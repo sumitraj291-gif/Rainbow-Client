@@ -57,7 +57,7 @@ const initialPlanForm = {
 };
 
 export default function ProductionPlanning() {
-    const [activeTab, setActiveTab] = useState("timeline"); // "timeline" | "machines" | "backlog"
+    const [activeTab, setActiveTab] = useState("timeline"); // "timeline" | "machines" | "backlog" | "inventory"
     const [shiftFilter, setShiftFilter] = useState("ALL"); // "ALL" | "DAY" | "NIGHT"
 
     const [orders, setOrders] = useState([]);
@@ -65,6 +65,9 @@ export default function ProductionPlanning() {
     const [salesOrders, setSalesOrders] = useState([]);
     const [products, setProducts] = useState([]);
     const [supervisors, setSupervisors] = useState([]);
+    const [materialAnalysis, setMaterialAnalysis] = useState([]);
+    const [materialSummary, setMaterialSummary] = useState(null);
+    const [materialSearch, setMaterialSearch] = useState("");
 
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -79,12 +82,13 @@ export default function ProductionPlanning() {
             setLoading(true);
             setError("");
 
-            const [ordersRes, machinesRes, soRes, optionsRes, prodRes] = await Promise.allSettled([
+            const [ordersRes, machinesRes, soRes, optionsRes, prodRes, matRes] = await Promise.allSettled([
                 api.get("/production-orders"),
                 api.get("/machines"),
                 api.get("/sales-orders"),
                 api.get("/production-orders/options"),
-                api.get("/products")
+                api.get("/products"),
+                api.get("/raw-materials/analysis")
             ]);
 
             if (ordersRes.status === "fulfilled" && ordersRes.value.data?.success) {
@@ -105,6 +109,11 @@ export default function ProductionPlanning() {
 
             if (prodRes.status === "fulfilled" && prodRes.value.data?.success) {
                 setProducts(prodRes.value.data.data || []);
+            }
+
+            if (matRes.status === "fulfilled" && matRes.value.data?.success) {
+                setMaterialAnalysis(matRes.value.data.data || []);
+                setMaterialSummary(matRes.value.data.summary || null);
             }
         } catch (err) {
             console.error("Planning Load Error:", err);
@@ -140,6 +149,17 @@ export default function ProductionPlanning() {
             goodOutput
         };
     }, [salesOrders, orders, machines]);
+
+    const filteredMaterials = useMemo(() => {
+        if (!materialSearch) return materialAnalysis;
+        const q = materialSearch.toLowerCase();
+        return materialAnalysis.filter(
+            (m) =>
+                m.material_name?.toLowerCase().includes(q) ||
+                m.material_code?.toLowerCase().includes(q) ||
+                m.category_name?.toLowerCase().includes(q)
+        );
+    }, [materialAnalysis, materialSearch]);
 
     // Generate 6 Calendar Days for Weekly Timeline
     const weekDays = useMemo(() => {
@@ -398,6 +418,14 @@ export default function ProductionPlanning() {
                         <BarChart3 size={15} /> Sales Demand Backlog
                         <span className="pp-tab-badge">{salesOrders.length}</span>
                     </button>
+                    <button
+                        type="button"
+                        className={`pp-tab-btn ${activeTab === "inventory" ? "active" : ""}`}
+                        onClick={() => setActiveTab("inventory")}
+                    >
+                        <Layers size={15} /> Reels & 39-Margin Check
+                        <span className="pp-tab-badge">{materialAnalysis.length}</span>
+                    </button>
                 </div>
 
                 {activeTab === "timeline" && (
@@ -634,6 +662,202 @@ export default function ProductionPlanning() {
                                             </td>
                                         </tr>
                                     ))
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            )}
+
+            {/* TAB 4: MATERIAL REELS & 39-MARGIN CHECK (PLANNING SECTION VIEW) */}
+            {activeTab === "inventory" && (
+                <div className="pp-timeline-card">
+                    <div className="pp-card-header" style={{ flexWrap: "wrap", gap: "14px" }}>
+                        <div>
+                            <h3>
+                                <Layers size={18} style={{ color: "#7c3aed" }} />
+                                Raw Material Inventory & 39-Day Margin Verification
+                            </h3>
+                            <p>Verify live raw material stock, physical reels/nos on hand, and 15-day burn rates before committing production runs</p>
+                        </div>
+                        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                            <div style={{ position: "relative", minWidth: "260px" }}>
+                                <Search size={14} style={{ position: "absolute", left: "10px", top: "50%", transform: "translateY(-50%)", color: "#94a3b8" }} />
+                                <input
+                                    type="text"
+                                    placeholder="Search material code or name..."
+                                    value={materialSearch}
+                                    onChange={(e) => setMaterialSearch(e.target.value)}
+                                    style={{
+                                        width: "100%",
+                                        padding: "6px 10px 6px 32px",
+                                        borderRadius: "6px",
+                                        border: "1px solid #cbd5e1",
+                                        fontSize: "0.82rem",
+                                        outline: "none"
+                                    }}
+                                />
+                            </div>
+                            <button
+                                type="button"
+                                className="pp-btn-refresh"
+                                onClick={loadAllPlanningData}
+                                title="Refresh inventory analysis"
+                            >
+                                <RefreshCw size={14} /> Sync
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Planning Material KPI Summary Strip */}
+                    <div style={{
+                        display: "grid",
+                        gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+                        gap: "12px",
+                        padding: "16px 20px",
+                        background: "#f8fafc",
+                        borderBottom: "1px solid #e2e8f0"
+                    }}>
+                        <div style={{ background: "#ffffff", padding: "12px 14px", borderRadius: "6px", border: "1px solid #e2e8f0" }}>
+                            <div style={{ fontSize: "0.72rem", fontWeight: "700", color: "#64748b", textTransform: "uppercase" }}>Reels / Nos in Stock</div>
+                            <div style={{ fontSize: "1.25rem", fontWeight: "800", color: "#7c3aed", marginTop: "4px" }}>
+                                {Number(materialSummary?.total_reels_nos || 0).toLocaleString()} <span style={{ fontSize: "0.85rem", fontWeight: "600", color: "#64748b" }}>Reels / Nos</span>
+                            </div>
+                        </div>
+
+                        <div style={{ background: "#ffffff", padding: "12px 14px", borderRadius: "6px", border: "1px solid #e2e8f0" }}>
+                            <div style={{ fontSize: "0.72rem", fontWeight: "700", color: "#64748b", textTransform: "uppercase" }}>Till Date Net Available Stock</div>
+                            <div style={{ fontSize: "1.25rem", fontWeight: "800", color: "#0284c7", marginTop: "4px" }}>
+                                {formatNumber(materialSummary?.total_stock_qty)} <span style={{ fontSize: "0.85rem", fontWeight: "600", color: "#64748b" }}>Units</span>
+                            </div>
+                        </div>
+
+                        <div style={{ background: "#ffffff", padding: "12px 14px", borderRadius: "6px", border: "1px solid #e2e8f0" }}>
+                            <div style={{ fontSize: "0.72rem", fontWeight: "700", color: "#64748b", textTransform: "uppercase" }}>15-Day Inward vs Burn</div>
+                            <div style={{ fontSize: "1.1rem", fontWeight: "800", marginTop: "4px", display: "flex", gap: "10px" }}>
+                                <span style={{ color: "#16a34a" }}>+{materialSummary?.total_inward_15d_reels || 0} In</span>
+                                <span style={{ color: "#dc2626" }}>-{materialSummary?.total_outward_15d_reels || 0} Out</span>
+                            </div>
+                        </div>
+
+                        <div style={{ background: "#ffffff", padding: "12px 14px", borderRadius: "6px", border: "1px solid #e2e8f0", borderLeft: "4px solid #f59e0b" }}>
+                            <div style={{ fontSize: "0.72rem", fontWeight: "700", color: "#64748b", textTransform: "uppercase" }}>39-Margin Standard Buffer</div>
+                            <div style={{ fontSize: "1.25rem", fontWeight: "800", color: "#d97706", marginTop: "4px" }}>
+                                {materialSummary?.avg_margin_days || 39} <span style={{ fontSize: "0.85rem", fontWeight: "600", color: "#64748b" }}>Days</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="pp-demand-table-wrap">
+                        <table className="pp-table">
+                            <thead>
+                                <tr>
+                                    <th>Material / Code</th>
+                                    <th>Category</th>
+                                    <th style={{ textAlign: "center" }}>Reels / Nos Count</th>
+                                    <th style={{ textAlign: "right" }}>Net Available Stock</th>
+                                    <th style={{ textAlign: "center" }}>15-Day Inward (Add)</th>
+                                    <th style={{ textAlign: "center" }}>15-Day Burn</th>
+                                    <th style={{ textAlign: "right" }}>Daily Burn Rate</th>
+                                    <th style={{ textAlign: "center" }}>Margin Buffer</th>
+                                    <th style={{ textAlign: "center" }}>Line Feasibility</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {filteredMaterials.length === 0 ? (
+                                    <tr>
+                                        <td colSpan={9} style={{ textAlign: "center", padding: "40px", color: "#64748b" }}>
+                                            No raw materials found matching filter.
+                                        </td>
+                                    </tr>
+                                ) : (
+                                    filteredMaterials.map((mat) => {
+                                        const isCritical = mat.margin_days < 20 || mat.status === "CRITICAL";
+                                        const isWarning = !isCritical && mat.margin_days < 39;
+                                        return (
+                                            <tr key={mat.id}>
+                                                <td>
+                                                    <strong style={{ color: "#0f172a" }}>{mat.material_name}</strong>
+                                                    <div style={{ fontSize: "0.74rem", color: "#64748b", marginTop: "2px" }}>
+                                                        <span style={{ fontWeight: "700", color: "#7c3aed" }}>{mat.material_code}</span>
+                                                        {mat.grade && ` • ${mat.grade}`}
+                                                        {mat.gsm && ` • ${mat.gsm} GSM`}
+                                                        {mat.width_mm && ` • ${mat.width_mm}mm`}
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <span style={{ fontSize: "0.75rem", padding: "2px 7px", borderRadius: "4px", background: "#f1f5f9", color: "#475569", fontWeight: "600" }}>
+                                                        {mat.category_name}
+                                                    </span>
+                                                </td>
+                                                <td style={{ textAlign: "center" }}>
+                                                    <span style={{
+                                                        display: "inline-flex",
+                                                        alignItems: "center",
+                                                        gap: "4px",
+                                                        padding: "3px 8px",
+                                                        borderRadius: "12px",
+                                                        background: "#ede9fe",
+                                                        color: "#6d28d9",
+                                                        fontWeight: "700",
+                                                        fontSize: "0.8rem"
+                                                    }}>
+                                                        <Package size={12} />
+                                                        {mat.current_reels_nos} Nos / Reels
+                                                    </span>
+                                                </td>
+                                                <td style={{ textAlign: "right" }}>
+                                                    <strong style={{ color: isCritical ? "#dc2626" : "#0f172a", fontSize: "0.9rem" }}>
+                                                        {formatNumber(mat.current_stock_qty)}
+                                                    </strong>{" "}
+                                                    <span style={{ fontSize: "0.75rem", color: "#64748b" }}>{mat.unit_symbol}</span>
+                                                </td>
+                                                <td style={{ textAlign: "center" }}>
+                                                    <span style={{ color: "#16a34a", fontWeight: "700", fontSize: "0.82rem" }}>
+                                                        +{mat.inward_15d_reels} Reels
+                                                    </span>
+                                                    <div style={{ fontSize: "0.72rem", color: "#64748b" }}>
+                                                        +{formatNumber(mat.inward_15d_qty)} {mat.unit_symbol}
+                                                    </div>
+                                                </td>
+                                                <td style={{ textAlign: "center" }}>
+                                                    <span style={{ color: "#dc2626", fontWeight: "700", fontSize: "0.82rem" }}>
+                                                        -{mat.outward_15d_reels} Reels
+                                                    </span>
+                                                    <div style={{ fontSize: "0.72rem", color: "#64748b" }}>
+                                                        -{formatNumber(mat.outward_15d_qty)} {mat.unit_symbol}
+                                                    </div>
+                                                </td>
+                                                <td style={{ textAlign: "right", fontSize: "0.82rem", color: "#475569" }}>
+                                                    <strong>{mat.daily_consumption}</strong> {mat.unit_symbol}/d
+                                                </td>
+                                                <td style={{ textAlign: "center" }}>
+                                                    <span style={{
+                                                        padding: "3px 8px",
+                                                        borderRadius: "4px",
+                                                        fontWeight: "700",
+                                                        fontSize: "0.8rem",
+                                                        background: isCritical ? "#fee2e2" : isWarning ? "#fef3c7" : "#dcfce7",
+                                                        color: isCritical ? "#b91c1c" : isWarning ? "#b45309" : "#15803d"
+                                                    }}>
+                                                        {mat.margin_days} Days
+                                                    </span>
+                                                </td>
+                                                <td style={{ textAlign: "center" }}>
+                                                    <span style={{
+                                                        fontSize: "0.72rem",
+                                                        fontWeight: "700",
+                                                        padding: "3px 9px",
+                                                        borderRadius: "20px",
+                                                        background: isCritical ? "#fee2e2" : isWarning ? "#fef3c7" : "#dcfce7",
+                                                        color: isCritical ? "#991b1b" : isWarning ? "#92400e" : "#166534"
+                                                    }}>
+                                                        {isCritical ? "REORDER REQUIRED" : isWarning ? "BUFFER TIGHT" : "READY TO SCHEDULE"}
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })
                                 )}
                             </tbody>
                         </table>

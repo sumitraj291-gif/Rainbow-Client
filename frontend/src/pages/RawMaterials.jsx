@@ -23,7 +23,9 @@ import {
     Database,
     Tag,
     ChevronRight,
-    Package
+    Package,
+    BarChart3,
+    TrendingUp
 } from "lucide-react";
 import "./RawMaterials.css";
 
@@ -94,6 +96,7 @@ export default function RawMaterials() {
     const [adjustForm, setAdjustForm] = useState({
         type: "ADD",
         quantity: "",
+        reel_count: "",
         reason: "PURCHASE",
         batch_number: "",
         remarks: ""
@@ -131,6 +134,12 @@ export default function RawMaterials() {
     });
     const [mixingSubmitting, setMixingSubmitting] = useState(false);
 
+    // Analysis States (Till Date Inventory & 15-day Inward/Consumption)
+    const [inventoryAnalysis, setInventoryAnalysis] = useState([]);
+    const [analysisSummary, setAnalysisSummary] = useState(null);
+    const [analysisFilter, setAnalysisFilter] = useState("ALL");
+    const [analysisSearch, setAnalysisSearch] = useState("");
+
     // =========================================================
     // INITIAL LOAD
     // =========================================================
@@ -142,24 +151,30 @@ export default function RawMaterials() {
         setLoading(true);
         setError(null);
         try {
-            const [matRes, statsRes, formRes, mixRes, metaRes] = await Promise.all([
+            const [matRes, statsRes, formRes, mixRes, metaRes, analysisRes] = await Promise.all([
                 fetch(`${API_BASE}/raw-materials`),
                 fetch(`${API_BASE}/raw-materials/stats`),
                 fetch(`${API_BASE}/raw-materials/formulations`),
                 fetch(`${API_BASE}/raw-materials/mixing-batches`),
-                fetch(`${API_BASE}/raw-materials/metadata`)
+                fetch(`${API_BASE}/raw-materials/metadata`),
+                fetch(`${API_BASE}/raw-materials/analysis`)
             ]);
 
-            const [mJson, sJson, fJson, bJson, metaJson] = await Promise.all([
+            const [mJson, sJson, fJson, bJson, metaJson, aJson] = await Promise.all([
                 matRes.json(),
                 statsRes.json(),
                 formRes.json(),
                 mixRes.json(),
-                metaRes.json()
+                metaRes.json(),
+                analysisRes.json()
             ]);
 
             if (mJson.success) setMaterials(mJson.data || []);
             if (sJson.success) setStats(sJson.data || {});
+            if (aJson.success) {
+                setInventoryAnalysis(aJson.data || []);
+                setAnalysisSummary(aJson.summary || null);
+            }
             if (metaJson.success && metaJson.data) {
                 setDbCategories(metaJson.data.categories || []);
                 setDbUnits(metaJson.data.units || []);
@@ -420,6 +435,29 @@ export default function RawMaterials() {
         return Array.from(map.entries()).map(([id, name]) => ({ id, name }));
     }, [materials]);
 
+    const filteredAnalysis = useMemo(() => {
+        return inventoryAnalysis.filter((item) => {
+            const matchesSearch =
+                !analysisSearch ||
+                item.material_name?.toLowerCase().includes(analysisSearch.toLowerCase()) ||
+                item.material_code?.toLowerCase().includes(analysisSearch.toLowerCase()) ||
+                item.category_name?.toLowerCase().includes(analysisSearch.toLowerCase());
+
+            if (!matchesSearch) return false;
+
+            if (analysisFilter === "CRITICAL") {
+                return item.margin_days < 20 || item.status === "CRITICAL";
+            }
+            if (analysisFilter === "REORDER") {
+                return item.margin_days >= 20 && item.margin_days < 39;
+            }
+            if (analysisFilter === "HEALTHY") {
+                return item.margin_days >= 39;
+            }
+            return true;
+        });
+    }, [inventoryAnalysis, analysisSearch, analysisFilter]);
+
     const handleSeedInventory = async () => {
         setLoading(true);
         setError(null);
@@ -522,6 +560,13 @@ export default function RawMaterials() {
                     onClick={() => setActiveTab("mixing")}
                 >
                     <Activity size={15} /> Mixing Logs
+                </button>
+                <button
+                    type="button"
+                    className={`rm-tab-item ${activeTab === "analysis" ? "active" : ""}`}
+                    onClick={() => setActiveTab("analysis")}
+                >
+                    <TrendingUp size={15} /> Till Date Inventory & 39-Margin
                 </button>
             </div>
 
@@ -723,6 +768,7 @@ export default function RawMaterials() {
                                                                 setAdjustForm({
                                                                     type: "ADD",
                                                                     quantity: "",
+                                                                    reel_count: "",
                                                                     reason: "PURCHASE",
                                                                     batch_number: "",
                                                                     remarks: ""
@@ -1014,6 +1060,260 @@ export default function RawMaterials() {
                                 )}
                             </tbody>
                         </table>
+                    </div>
+                </div>
+            )}
+
+            {/* =================================================
+               TAB 4: TILL DATE INVENTORY, 15-DAY INWARD/CONSUMPTION & 39-DAY MARGIN
+            ================================================= */}
+            {activeTab === "analysis" && (
+                <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+                    {/* Top KPI Cards (Based on Handwritten Inventory Note) */}
+                    <div className="rm-stats-grid" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))" }}>
+                        <div className="rm-stat-card">
+                            <div className="rm-stat-top">
+                                <span className="rm-stat-label">CURRENT REELS / NOS</span>
+                                <div className="rm-stat-icon-wrap" style={{ background: "#ede9fe", color: "#7c3aed" }}>
+                                    <Package size={18} />
+                                </div>
+                            </div>
+                            <div className="rm-stat-value">
+                                {Number(analysisSummary?.total_reels_nos || 0).toLocaleString()} <span style={{ fontSize: "0.95rem", fontWeight: "600", color: "#64748b" }}>Nos / Reels</span>
+                            </div>
+                            <span className="rm-stat-sub">
+                                Hand-counted physical inventory rolls
+                            </span>
+                        </div>
+
+                        <div className="rm-stat-card">
+                            <div className="rm-stat-top">
+                                <span className="rm-stat-label">TILL DATE NET STOCK</span>
+                                <div className="rm-stat-icon-wrap" style={{ background: "#e0f2fe", color: "#0284c7" }}>
+                                    <Database size={18} />
+                                </div>
+                            </div>
+                            <div className="rm-stat-value">
+                                {Number(analysisSummary?.total_stock_qty || 0).toLocaleString()} <span style={{ fontSize: "0.95rem", fontWeight: "600", color: "#64748b" }}>Units</span>
+                            </div>
+                            <span className="rm-stat-sub">
+                                Updated Net = Opening + Inward - Outward
+                            </span>
+                        </div>
+
+                        <div className="rm-stat-card">
+                            <div className="rm-stat-top">
+                                <span className="rm-stat-label">15-DAY INWARD (ADD)</span>
+                                <div className="rm-stat-icon-wrap" style={{ background: "#dcfce7", color: "#16a34a" }}>
+                                    <TrendingUp size={18} />
+                                </div>
+                            </div>
+                            <div className="rm-stat-value" style={{ color: "#16a34a" }}>
+                                +{analysisSummary?.total_inward_15d_reels || 0} <span style={{ fontSize: "0.95rem", fontWeight: "600", color: "#16a34a" }}>Reels</span>
+                            </div>
+                            <span className="rm-stat-sub" style={{ color: "#15803d", fontWeight: "600" }}>
+                                +{Number(analysisSummary?.total_inward_15d_qty || 0).toLocaleString()} Units added
+                            </span>
+                        </div>
+
+                        <div className="rm-stat-card">
+                            <div className="rm-stat-top">
+                                <span className="rm-stat-label">15-DAY CONSUMPTION</span>
+                                <div className="rm-stat-icon-wrap" style={{ background: "#fee2e2", color: "#dc2626" }}>
+                                    <ArrowRight size={18} />
+                                </div>
+                            </div>
+                            <div className="rm-stat-value" style={{ color: "#dc2626" }}>
+                                -{analysisSummary?.total_outward_15d_reels || 0} <span style={{ fontSize: "0.95rem", fontWeight: "600", color: "#dc2626" }}>Reels</span>
+                            </div>
+                            <span className="rm-stat-sub" style={{ color: "#b91c1c", fontWeight: "600" }}>
+                                -{Number(analysisSummary?.total_outward_15d_qty || 0).toLocaleString()} Units consumed
+                            </span>
+                        </div>
+
+                        <div className="rm-stat-card" style={{ borderLeft: "4px solid #f59e0b" }}>
+                            <div className="rm-stat-top">
+                                <span className="rm-stat-label">SAFETY MARGIN BUFFER</span>
+                                <div className="rm-stat-icon-wrap" style={{ background: "#fef3c7", color: "#d97706" }}>
+                                    <BarChart3 size={18} />
+                                </div>
+                            </div>
+                            <div className="rm-stat-value">
+                                {analysisSummary?.avg_margin_days || 39} <span style={{ fontSize: "0.95rem", fontWeight: "600", color: "#64748b" }}>Days</span>
+                            </div>
+                            <span className="rm-stat-sub" style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                                <span style={{ padding: "1px 6px", borderRadius: "4px", background: "#fef3c7", color: "#b45309", fontWeight: "700", fontSize: "0.75rem" }}>
+                                    Target: 39 Margin
+                                </span>
+                                Run-rate buffer
+                            </span>
+                        </div>
+                    </div>
+
+                    {/* Analysis Table Card */}
+                    <div className="rm-card">
+                        <div className="rm-filter-bar">
+                            <div className="rm-search-wrap">
+                                <Search size={15} />
+                                <input
+                                    type="text"
+                                    placeholder="Filter by material code, name, or category..."
+                                    value={analysisSearch}
+                                    onChange={(e) => setAnalysisSearch(e.target.value)}
+                                />
+                            </div>
+
+                            <div className="rm-filter-selects">
+                                <select
+                                    value={analysisFilter}
+                                    onChange={(e) => setAnalysisFilter(e.target.value)}
+                                >
+                                    <option value="ALL">All Margin Statuses</option>
+                                    <option value="CRITICAL">Critical Stock (&lt; 20 Days Margin)</option>
+                                    <option value="REORDER">Reorder Watch (20 - 38 Days Margin)</option>
+                                    <option value="HEALTHY">Safe Buffer (&ge; 39 Days Margin)</option>
+                                </select>
+
+                                {analysisSearch && (
+                                    <button
+                                        type="button"
+                                        className="rm-clear-btn"
+                                        onClick={() => setAnalysisSearch("")}
+                                    >
+                                        Clear
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+
+                        <div className="rm-table-responsive">
+                            <table className="rm-table">
+                                <thead>
+                                    <tr>
+                                        <th>Material Details</th>
+                                        <th>Category</th>
+                                        <th style={{ textAlign: "center" }}>Current Reels / Nos</th>
+                                        <th style={{ textAlign: "right" }}>Net Available Stock</th>
+                                        <th style={{ textAlign: "center" }}>15-Day Inward (Add)</th>
+                                        <th style={{ textAlign: "center" }}>15-Day Consumption</th>
+                                        <th style={{ textAlign: "right" }}>Daily Burn Rate</th>
+                                        <th style={{ textAlign: "center" }}>Margin Buffer</th>
+                                        <th style={{ textAlign: "center" }}>Status</th>
+                                        <th style={{ textAlign: "right" }}>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {filteredAnalysis.length === 0 ? (
+                                        <tr>
+                                            <td colSpan="10" className="rm-empty-state">
+                                                No materials found matching current analysis filters.
+                                            </td>
+                                        </tr>
+                                    ) : (
+                                        filteredAnalysis.map((item) => {
+                                            const isCritical = item.margin_days < 20 || item.status === "CRITICAL";
+                                            const isWarning = !isCritical && item.margin_days < 39;
+                                            return (
+                                                <tr key={item.id}>
+                                                    <td>
+                                                        <div className="rm-mat-name">{item.material_name}</div>
+                                                        <div className="rm-mat-code" style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                                                            <span>{item.material_code}</span>
+                                                            {item.grade && <span style={{ color: "#64748b" }}>• {item.grade}</span>}
+                                                            {item.gsm && <span style={{ color: "#64748b" }}>• {item.gsm} GSM</span>}
+                                                            {item.width_mm && <span style={{ color: "#64748b" }}>• {item.width_mm}mm</span>}
+                                                        </div>
+                                                    </td>
+                                                    <td>
+                                                        <span className="rm-cat-badge">{item.category_name}</span>
+                                                    </td>
+                                                    <td style={{ textAlign: "center" }}>
+                                                        <div style={{ display: "inline-flex", alignItems: "center", gap: "5px", padding: "4px 10px", background: "#f1f5f9", borderRadius: "16px", fontWeight: "700", color: "#334155" }}>
+                                                            <Package size={13} color="#64748b" />
+                                                            <span>{item.current_reels_nos} Nos / Reels</span>
+                                                        </div>
+                                                    </td>
+                                                    <td style={{ textAlign: "right" }}>
+                                                        <span className="rm-stock-val" style={{ fontWeight: "700", color: isCritical ? "#dc2626" : "#0f172a" }}>
+                                                            {Number(item.current_stock_qty).toLocaleString()} {item.unit_symbol}
+                                                        </span>
+                                                    </td>
+                                                    <td style={{ textAlign: "center" }}>
+                                                        <div style={{ display: "inline-flex", flexDirection: "column", alignItems: "center" }}>
+                                                            <span style={{ color: "#16a34a", fontWeight: "700", fontSize: "0.85rem" }}>
+                                                                +{item.inward_15d_reels} Reels
+                                                            </span>
+                                                            <span style={{ fontSize: "0.75rem", color: "#64748b" }}>
+                                                                +{Number(item.inward_15d_qty).toLocaleString()} {item.unit_symbol}
+                                                            </span>
+                                                        </div>
+                                                    </td>
+                                                    <td style={{ textAlign: "center" }}>
+                                                        <div style={{ display: "inline-flex", flexDirection: "column", alignItems: "center" }}>
+                                                            <span style={{ color: "#dc2626", fontWeight: "700", fontSize: "0.85rem" }}>
+                                                                -{item.outward_15d_reels} Reels
+                                                            </span>
+                                                            <span style={{ fontSize: "0.75rem", color: "#64748b" }}>
+                                                                -{Number(item.outward_15d_qty).toLocaleString()} {item.unit_symbol}
+                                                            </span>
+                                                        </div>
+                                                    </td>
+                                                    <td style={{ textAlign: "right", fontSize: "0.85rem", color: "#475569" }}>
+                                                        <strong>{item.daily_consumption}</strong> {item.unit_symbol}/day
+                                                    </td>
+                                                    <td style={{ textAlign: "center" }}>
+                                                        <div style={{
+                                                            display: "inline-block",
+                                                            padding: "3px 8px",
+                                                            borderRadius: "4px",
+                                                            fontWeight: "700",
+                                                            fontSize: "0.82rem",
+                                                            background: isCritical ? "#fee2e2" : isWarning ? "#fef3c7" : "#dcfce7",
+                                                            color: isCritical ? "#991b1b" : isWarning ? "#92400e" : "#166534"
+                                                        }}>
+                                                            {item.margin_days} Days
+                                                        </div>
+                                                    </td>
+                                                    <td style={{ textAlign: "center" }}>
+                                                        <span className={`rm-status-pill ${isCritical ? "low" : isWarning ? "reorder" : "normal"}`}>
+                                                            {isCritical ? "CRITICAL" : isWarning ? "REORDER" : "HEALTHY"}
+                                                        </span>
+                                                    </td>
+                                                    <td style={{ textAlign: "right", whiteSpace: "nowrap" }}>
+                                                        <button
+                                                            type="button"
+                                                            className="rm-row-btn stock"
+                                                            title="Quick Add Inward Stock & Reels"
+                                                            onClick={() => {
+                                                                const foundMat = materials.find(m => m.id === item.id) || {
+                                                                    id: item.id,
+                                                                    material_name: item.material_name,
+                                                                    material_code: item.material_code,
+                                                                    current_stock_qty: item.current_stock_qty,
+                                                                    unit_symbol: item.unit_symbol
+                                                                };
+                                                                setAdjustTargetMaterial(foundMat);
+                                                                setAdjustForm({
+                                                                    type: "ADD",
+                                                                    quantity: "",
+                                                                    reel_count: "",
+                                                                    reason: "PURCHASE",
+                                                                    batch_number: "",
+                                                                    remarks: ""
+                                                                });
+                                                                setShowAdjustModal(true);
+                                                            }}
+                                                        >
+                                                            <Plus size={12} /> Inward
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             )}
@@ -1444,16 +1744,28 @@ export default function RawMaterials() {
                                 </button>
                             </div>
 
-                            <div className="rm-form-field">
-                                <label>Quantity to {adjustForm.type === "ADD" ? "Add" : "Deduct"} ({adjustTargetMaterial.unit_symbol || "KG"}) *</label>
-                                <input
-                                    type="number"
-                                    step="0.01"
-                                    required
-                                    placeholder="Enter quantity"
-                                    value={adjustForm.quantity}
-                                    onChange={(e) => setAdjustForm({ ...adjustForm, quantity: e.target.value })}
-                                />
+                            <div className="rm-form-grid-2">
+                                <div className="rm-form-field">
+                                    <label>Quantity to {adjustForm.type === "ADD" ? "Add" : "Deduct"} ({adjustTargetMaterial.unit_symbol || "KG"}) *</label>
+                                    <input
+                                        type="number"
+                                        step="0.01"
+                                        required
+                                        placeholder="e.g. 220"
+                                        value={adjustForm.quantity}
+                                        onChange={(e) => setAdjustForm({ ...adjustForm, quantity: e.target.value })}
+                                    />
+                                </div>
+                                <div className="rm-form-field">
+                                    <label>Reels / Nos Count (e.g. 20 Nos)</label>
+                                    <input
+                                        type="number"
+                                        min="0"
+                                        placeholder="e.g. 20"
+                                        value={adjustForm.reel_count || ""}
+                                        onChange={(e) => setAdjustForm({ ...adjustForm, reel_count: e.target.value })}
+                                    />
+                                </div>
                             </div>
 
                             <div className="rm-form-field">
