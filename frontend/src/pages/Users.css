@@ -419,10 +419,19 @@
     width: 100%;
     max-width: 620px;
     max-height: 90vh;
+    max-height: 90dvh;
     display: flex;
     flex-direction: column;
     box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
     animation: slideUp 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    overflow: hidden;
+}
+
+.user-modal-card form {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
     overflow: hidden;
 }
 
@@ -433,6 +442,7 @@
     justify-content: space-between;
     align-items: center;
     background: #ffffff;
+    flex-shrink: 0;
 }
 
 .user-modal-title {
@@ -471,9 +481,12 @@
 .user-modal-body {
     padding: 20px 24px;
     overflow-y: auto;
+    flex: 1 1 auto;
+    min-height: 0;
     display: flex;
     flex-direction: column;
     gap: 18px;
+    -webkit-overflow-scrolling: touch;
 }
 
 /* Selected Employee Banner */
@@ -581,6 +594,10 @@
     justify-content: flex-end;
     gap: 10px;
     background: #f8fafc;
+    flex-shrink: 0;
+    position: sticky;
+    bottom: 0;
+    z-index: 5;
 }
 
 .user-cancel-btn {

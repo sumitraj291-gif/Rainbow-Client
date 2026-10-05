@@ -303,9 +303,23 @@ const menuSections = [
 function AppLayout() {
 
     const [sidebarOpen, setSidebarOpen] = useState(true);
+    const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
     const location = useLocation();
     const navigate = useNavigate();
+
+    // Automatically close mobile sidebar on route change
+    React.useEffect(() => {
+        setMobileMenuOpen(false);
+    }, [location.pathname]);
+
+    const toggleSidebar = () => {
+        if (typeof window !== "undefined" && window.innerWidth <= 768) {
+            setMobileMenuOpen(prev => !prev);
+        } else {
+            setSidebarOpen(prev => !prev);
+        }
+    };
 
     const {
         user,
@@ -376,9 +390,22 @@ function AppLayout() {
                     sidebarOpen
                         ? ""
                         : "sidebar-collapsed"
+                } ${
+                    mobileMenuOpen
+                        ? "sidebar-mobile-open"
+                        : ""
                 }`
             }
         >
+
+            {/* MOBILE BACKDROP */}
+            {mobileMenuOpen && (
+                <div
+                    className="erp-sidebar-backdrop"
+                    onClick={() => setMobileMenuOpen(false)}
+                    aria-hidden="true"
+                />
+            )}
 
             {/* ================================
                 SIDEBAR
@@ -445,6 +472,7 @@ function AppLayout() {
                                             end={
                                                 item.path === "/"
                                             }
+                                            onClick={() => setMobileMenuOpen(false)}
                                             className={
                                                 ({ isActive }) =>
                                                     `menu-link ${
@@ -511,9 +539,7 @@ function AppLayout() {
 
                         <button
                             className="sidebar-toggle"
-                            onClick={() =>
-                                setSidebarOpen(!sidebarOpen)
-                            }
+                            onClick={toggleSidebar}
                             type="button"
                             aria-label="Toggle sidebar"
                         >

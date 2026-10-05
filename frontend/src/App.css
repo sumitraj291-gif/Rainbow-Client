@@ -5457,3 +5457,382 @@ a:focus-visible {
         font-size: 21px !important;
     }
 }
+
+/* =========================================================
+   ERP MOBILE DRAWER SYSTEM
+   ========================================================= */
+
+.erp-sidebar-backdrop {
+    display: none;
+}
+
+@media (max-width: 768px) {
+    .erp-sidebar-backdrop {
+        display: block;
+        position: fixed;
+        inset: 0;
+        background: rgba(15, 23, 42, 0.5);
+        backdrop-filter: blur(4px);
+        z-index: 998;
+        animation: fadeIn 0.2s ease-out;
+    }
+
+    .erp-sidebar {
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        width: min(300px, 84vw) !important;
+        height: 100vh !important;
+        height: 100dvh !important;
+        border-radius: 0 18px 18px 0 !important;
+        box-shadow: 10px 0 35px rgba(15, 23, 42, 0.2) !important;
+        transform: translateX(-100%) !important;
+        transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+        z-index: 999 !important;
+        margin: 0 !important;
+    }
+
+    .erp-layout.sidebar-mobile-open .erp-sidebar {
+        transform: translateX(0) !important;
+    }
+
+    .erp-main {
+        width: 100% !important;
+        margin-left: 0 !important;
+        padding-top: 10px !important;
+    }
+
+    .erp-header {
+        position: sticky !important;
+        top: 0 !important;
+        width: 100% !important;
+        border-radius: 0 !important;
+        margin: 0 !important;
+        padding: 0 14px !important;
+    }
+
+    .header-breadcrumbs .breadcrumb-root,
+    .header-breadcrumbs .breadcrumb-sep {
+        display: none !important;
+    }
+
+    .header-right {
+        gap: 8px !important;
+    }
+}
+
+/* =========================================================
+   UNIVERSAL MODAL RESILIENCE SYSTEM
+   Guarantees that across EVERY module and dialog:
+   1. The modal never gets cut off by the screen viewport.
+   2. The header and title stay at the top.
+   3. The form body smoothly scrolls if it is taller than the screen.
+   4. The footer (Cancel / Submit / Save) is ALWAYS visible, sticky, and clickable.
+   ========================================================= */
+
+:is(
+    [class*="modal-overlay"],
+    .modal-overlay,
+    .user-modal-overlay,
+    .emp-modal-overlay,
+    .cust-modal-overlay,
+    .machine-modal-overlay,
+    .mt-modal-overlay,
+    .routing-modal-overlay,
+    .pe-modal-overlay,
+    .po-modal-overlay,
+    .rm-modal-overlay,
+    .mr-modal-overlay,
+    .cr-modal-overlay,
+    .fg-modal-overlay,
+    .rs-modal-overlay,
+    .so-modal-overlay,
+    .excel-modal-overlay,
+    .pdf-modal-overlay,
+    .production-modal-overlay
+) {
+    position: fixed !important;
+    inset: 0 !important;
+    z-index: 1000 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 16px !important;
+    overflow-y: auto !important;
+    background: rgba(15, 23, 42, 0.55) !important;
+    backdrop-filter: blur(4px) !important;
+}
+
+:is(
+    [class*="modal-card"],
+    [class*="modal-content"],
+    .modal-card,
+    .user-modal-card,
+    .emp-modal-card,
+    .cust-modal-card,
+    .machine-modal-card,
+    .mt-modal-card,
+    .routing-modal-card,
+    .pe-modal-card,
+    .po-modal-card,
+    .rm-modal-card,
+    .mr-modal-card,
+    .cr-modal-card,
+    .fg-modal-card,
+    .rs-modal-card,
+    .so-modal-card,
+    .excel-modal-card,
+    .pdf-modal-card,
+    .production-modal-card
+) {
+    display: flex !important;
+    flex-direction: column !important;
+    max-height: calc(100vh - 36px) !important;
+    max-height: calc(100dvh - 36px) !important;
+    height: auto !important;
+    width: 100% !important;
+    overflow: hidden !important;
+    border-radius: 14px !important;
+    background: #ffffff !important;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25) !important;
+    margin: auto !important;
+}
+
+:is(
+    [class*="modal-card"],
+    [class*="modal-content"],
+    .modal-card,
+    .user-modal-card,
+    .emp-modal-card,
+    .cust-modal-card,
+    .machine-modal-card,
+    .mt-modal-card,
+    .routing-modal-card,
+    .pe-modal-card,
+    .po-modal-card,
+    .rm-modal-card,
+    .mr-modal-card,
+    .cr-modal-card,
+    .fg-modal-card,
+    .rs-modal-card,
+    .so-modal-card,
+    .excel-modal-card,
+    .pdf-modal-card,
+    .production-modal-card
+) > form,
+:is(
+    [class*="modal-card"],
+    [class*="modal-content"],
+    .modal-card,
+    .user-modal-card,
+    .emp-modal-card,
+    .cust-modal-card,
+    .machine-modal-card,
+    .mt-modal-card,
+    .routing-modal-card,
+    .pe-modal-card,
+    .po-modal-card,
+    .rm-modal-card,
+    .mr-modal-card,
+    .cr-modal-card,
+    .fg-modal-card,
+    .rs-modal-card,
+    .so-modal-card,
+    .excel-modal-card,
+    .pdf-modal-card,
+    .production-modal-card
+) form {
+    display: flex !important;
+    flex-direction: column !important;
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+}
+
+:is(
+    [class*="modal-header"],
+    .modal-header,
+    .user-modal-header,
+    .emp-modal-header,
+    .cust-modal-header,
+    .machine-modal-header,
+    .mt-modal-header,
+    .routing-modal-header,
+    .pe-modal-header,
+    .po-modal-header,
+    .rm-modal-header,
+    .mr-modal-header,
+    .cr-modal-header,
+    .fg-modal-header,
+    .rs-modal-header,
+    .so-modal-header,
+    .excel-modal-header,
+    .pdf-modal-header,
+    .production-modal-header
+) {
+    flex-shrink: 0 !important;
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 10 !important;
+    background: #ffffff !important;
+}
+
+:is(
+    [class*="modal-body"],
+    .modal-body,
+    .user-modal-body,
+    .emp-modal-body,
+    .cust-modal-body,
+    .machine-modal-body,
+    .mt-modal-body,
+    .routing-modal-body,
+    .pe-modal-body,
+    .po-modal-body,
+    .rm-modal-body,
+    .mr-modal-body,
+    .cr-modal-body,
+    .fg-modal-body,
+    .rs-modal-body,
+    .so-modal-body,
+    .excel-modal-body,
+    .pdf-modal-body,
+    .production-modal-body
+) {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+}
+
+:is(
+    [class*="modal-footer"],
+    .modal-footer,
+    .user-modal-footer,
+    .emp-modal-footer,
+    .cust-modal-footer,
+    .machine-modal-footer,
+    .mt-modal-footer,
+    .routing-modal-footer,
+    .pe-modal-footer,
+    .po-modal-footer,
+    .rm-modal-footer,
+    .mr-modal-footer,
+    .cr-modal-footer,
+    .fg-modal-footer,
+    .rs-modal-footer,
+    .so-modal-footer,
+    .excel-modal-footer,
+    .pdf-modal-footer,
+    .production-modal-footer
+) {
+    flex-shrink: 0 !important;
+    position: sticky !important;
+    bottom: 0 !important;
+    z-index: 10 !important;
+    background: #f8fafc !important;
+    border-top: 1px solid #e2e8f0 !important;
+}
+
+@media (max-width: 640px) {
+    :is(
+        [class*="modal-overlay"],
+        .modal-overlay,
+        .user-modal-overlay,
+        .emp-modal-overlay,
+        .cust-modal-overlay,
+        .machine-modal-overlay,
+        .mt-modal-overlay,
+        .routing-modal-overlay,
+        .pe-modal-overlay,
+        .po-modal-overlay,
+        .rm-modal-overlay,
+        .mr-modal-overlay,
+        .cr-modal-overlay,
+        .fg-modal-overlay,
+        .rs-modal-overlay,
+        .so-modal-overlay,
+        .excel-modal-overlay,
+        .pdf-modal-overlay,
+        .production-modal-overlay
+    ) {
+        padding: 8px !important;
+        align-items: flex-end !important;
+    }
+
+    :is(
+        [class*="modal-card"],
+        [class*="modal-content"],
+        .modal-card,
+        .user-modal-card,
+        .emp-modal-card,
+        .cust-modal-card,
+        .machine-modal-card,
+        .mt-modal-card,
+        .routing-modal-card,
+        .pe-modal-card,
+        .po-modal-card,
+        .rm-modal-card,
+        .mr-modal-card,
+        .cr-modal-card,
+        .fg-modal-card,
+        .rs-modal-card,
+        .so-modal-card,
+        .excel-modal-card,
+        .pdf-modal-card,
+        .production-modal-card
+    ) {
+        max-height: calc(100dvh - 16px) !important;
+        width: 100% !important;
+        margin: 0 !important;
+        border-radius: 16px 16px 10px 10px !important;
+    }
+
+    :is(
+        [class*="modal-body"],
+        .modal-body,
+        .user-modal-body,
+        .emp-modal-body,
+        .cust-modal-body,
+        .machine-modal-body,
+        .mt-modal-body,
+        .routing-modal-body,
+        .pe-modal-body,
+        .po-modal-body,
+        .rm-modal-body,
+        .mr-modal-body,
+        .cr-modal-body,
+        .fg-modal-body,
+        .rs-modal-body,
+        .so-modal-body,
+        .excel-modal-body,
+        .pdf-modal-body,
+        .production-modal-body
+    ) {
+        padding: 14px 16px !important;
+    }
+
+    :is(
+        [class*="modal-footer"],
+        .modal-footer,
+        .user-modal-footer,
+        .emp-modal-footer,
+        .cust-modal-footer,
+        .machine-modal-footer,
+        .mt-modal-footer,
+        .routing-modal-footer,
+        .pe-modal-footer,
+        .po-modal-footer,
+        .rm-modal-footer,
+        .mr-modal-footer,
+        .cr-modal-footer,
+        .fg-modal-footer,
+        .rs-modal-footer,
+        .so-modal-footer,
+        .excel-modal-footer,
+        .pdf-modal-footer,
+        .production-modal-footer
+    ) {
+        padding: 12px 16px !important;
+        gap: 8px !important;
+    }
+}
