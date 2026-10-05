@@ -66,14 +66,41 @@ app.use(express.json());
 // Form request body
 app.use(express.urlencoded({ extended: true }));
 
+const frontendDistPath = path.resolve(__dirname, "../../frontend/dist");
+
+if (fs.existsSync(frontendDistPath)) {
+    console.log(`[Static] Serving frontend SPA from: ${frontendDistPath}`);
+    app.use(express.static(frontendDistPath, { index: false }));
+}
+
 // ===============================
-// MAIN API
+// MAIN API & SPA ROOT
 // ===============================
 
 app.get("/", (req, res) => {
+    // If client is a web browser requesting an HTML page and frontend dist exists, serve React UI
+    const isBrowserDocRequest = Boolean(
+        (req.headers.accept && req.headers.accept.includes("text/html")) ||
+        req.headers["sec-fetch-dest"] === "document"
+    );
+
+    if (fs.existsSync(frontendDistPath) && isBrowserDocRequest) {
+        return res.sendFile(path.join(frontendDistPath, "index.html"));
+    }
+
+    // Otherwise return API status JSON (for automated tests, curl, and health probes)
     res.json({
         success: true,
         message: "Production Management API is running"
+    });
+});
+
+app.get("/api", (req, res) => {
+    res.json({
+        success: true,
+        message: "Rainbow Production Management API is running",
+        version: "1.0.0",
+        timestamp: new Date().toISOString()
     });
 });
 
@@ -165,13 +192,9 @@ app.use("/api", (req, res) => {
 });
 
 // ===============================
-// STATIC FRONTEND SERVING (PRODUCTION & RENDER UNIFIED SERVICE)
+// CLIENT SPA ROUTING FALLBACK
 // ===============================
-const frontendDistPath = path.resolve(__dirname, "../../frontend/dist");
 if (fs.existsSync(frontendDistPath)) {
-    console.log(`[Static] Serving frontend SPA from ${frontendDistPath}`);
-    app.use(express.static(frontendDistPath));
-
     // Handle React client-side SPA routing (Express 5 compatible)
     app.use((req, res, next) => {
         if (req.method === "GET" && !req.path.startsWith("/api")) {
