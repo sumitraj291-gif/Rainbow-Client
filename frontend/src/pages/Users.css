@@ -479,13 +479,13 @@
 }
 
 .user-modal-body {
-    padding: 20px 24px;
+    padding: 16px 22px;
     overflow-y: auto;
     flex: 1 1 auto;
     min-height: 0;
     display: flex;
     flex-direction: column;
-    gap: 18px;
+    gap: 13px;
     -webkit-overflow-scrolling: touch;
 }
 
@@ -494,42 +494,42 @@
     background: #f8fafc;
     border: 1px solid #cbd5e1;
     border-radius: 8px;
-    padding: 14px 16px;
+    padding: 8px 12px;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 12px;
+    gap: 10px;
 }
 
 .emp-preview-info {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 10px;
 }
 
 .emp-preview-avatar {
-    width: 40px;
-    height: 40px;
-    border-radius: 8px;
+    width: 34px;
+    height: 34px;
+    border-radius: 7px;
     background: #2563eb;
     color: #ffffff;
     display: flex;
     align-items: center;
     justify-content: center;
     font-weight: 700;
-    font-size: 0.95rem;
+    font-size: 0.85rem;
 }
 
 .emp-preview-details h4 {
-    margin: 0 0 2px 0;
-    font-size: 0.92rem;
+    margin: 0 0 1px 0;
+    font-size: 0.88rem;
     font-weight: 700;
     color: #0f172a;
 }
 
 .emp-preview-details p {
     margin: 0;
-    font-size: 0.78rem;
+    font-size: 0.75rem;
     color: #64748b;
 }
 
