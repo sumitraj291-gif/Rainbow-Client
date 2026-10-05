@@ -67,6 +67,8 @@ const login = async (req, res) => {
         }
 
         // Create JWT
+        // Create JWT
+        const jwtSecret = process.env.JWT_SECRET || "rainbow_polymers_erp_jwt_secret_key_2026_super_secure";
         const token = jwt.sign(
             {
                 id: user.id,
@@ -74,7 +76,7 @@ const login = async (req, res) => {
                 role: user.role_name,
                 email: user.email
             },
-            process.env.JWT_SECRET,
+            jwtSecret,
             {
                 expiresIn: "8h"
             }
@@ -102,11 +104,15 @@ const login = async (req, res) => {
 
     } catch (error) {
         console.error("LOGIN ERROR:", error);
+        const errMsg = error.message || error.code || String(error);
+        const isDbConnError = error.code === "ECONNREFUSED" || error.code === "ENOTFOUND" || errMsg.includes("connect") || errMsg.includes("denied") || !process.env.DATABASE_URL;
 
         return res.status(500).json({
             success: false,
-            message: "Unable to login",
-            error: error.message
+            message: isDbConnError
+                ? "Database not connected. Please set the DATABASE_URL environment variable in the Render Dashboard."
+                : `Login failed: ${errMsg}`,
+            error: errMsg
         });
     }
 };

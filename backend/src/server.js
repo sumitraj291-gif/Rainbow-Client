@@ -122,11 +122,15 @@ app.get("/api/health", async (req, res) => {
 
     } catch (error) {
         console.error("Database Health Error:", error);
+        const hasDbUrl = Boolean(process.env.DATABASE_URL);
 
         res.status(500).json({
             success: false,
-            message: "Database connection failed",
-            error: error.message
+            message: hasDbUrl
+                ? "Database connection failed with provided DATABASE_URL"
+                : "Database connection failed. DATABASE_URL environment variable is not configured on Render.",
+            error: error.message || error.code || String(error),
+            has_database_url: hasDbUrl
         });
     }
 });
