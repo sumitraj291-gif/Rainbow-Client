@@ -1,0 +1,381 @@
+/* ================================================================
+   EXCEL TOOLBAR – Import / Export Component Styles
+   ================================================================ */
+
+/* ── Inline Buttons ────────────────────────────────────────────── */
+
+.excel-toolbar-buttons {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.excel-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    height: 34px;
+    padding: 0 13px;
+    border-radius: 6px;
+    font-size: 12.5px;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+    font-family: inherit;
+    box-sizing: border-box;
+    line-height: 1;
+}
+
+.excel-export-btn {
+    background: linear-gradient(135deg, #059669 0%, #047857 100%);
+    color: #fff;
+    border-color: rgba(5, 150, 105, 0.3);
+    box-shadow: 0 1px 3px rgba(5, 150, 105, 0.15);
+}
+
+.excel-export-btn:hover:not(:disabled) {
+    background: linear-gradient(135deg, #047857 0%, #065f46 100%);
+    box-shadow: 0 2px 8px rgba(5, 150, 105, 0.25);
+    transform: translateY(-1px);
+}
+
+.excel-import-btn {
+    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+    color: #fff;
+    border-color: rgba(37, 99, 235, 0.3);
+    box-shadow: 0 1px 3px rgba(37, 99, 235, 0.15);
+}
+
+.excel-import-btn:hover:not(:disabled) {
+    background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
+    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.25);
+    transform: translateY(-1px);
+}
+
+.excel-btn:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+    transform: none !important;
+}
+
+/* ── Modal Overlay ─────────────────────────────────────────────── */
+
+.excel-modal-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+    animation: excelFadeIn 0.2s ease;
+}
+
+@keyframes excelFadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+/* ── Modal Box ─────────────────────────────────────────────────── */
+
+.excel-modal {
+    background: #fff;
+    border-radius: 14px;
+    width: 95%;
+    max-width: 520px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.18);
+    animation: excelSlideUp 0.25s ease;
+    overflow: hidden;
+}
+
+@keyframes excelSlideUp {
+    from { transform: translateY(20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+.excel-modal-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    padding: 20px 24px 16px;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.excel-modal-title {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    color: #1e293b;
+}
+
+.excel-modal-title svg {
+    color: #059669;
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+
+.excel-modal-title h3 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.excel-modal-title p {
+    margin: 2px 0 0;
+    font-size: 12.5px;
+    color: #64748b;
+}
+
+.excel-modal-close {
+    background: #f1f5f9;
+    border: none;
+    border-radius: 8px;
+    padding: 6px;
+    cursor: pointer;
+    color: #64748b;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.excel-modal-close:hover {
+    background: #e2e8f0;
+    color: #0f172a;
+}
+
+/* ── Body ──────────────────────────────────────────────────────── */
+
+.excel-modal-body {
+    padding: 20px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+/* ── Template Hint ─────────────────────────────────────────────── */
+
+.excel-template-hint {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    border-radius: 8px;
+    font-size: 12.5px;
+    color: #166534;
+}
+
+.excel-template-link {
+    background: none;
+    border: none;
+    color: #059669;
+    font-weight: 700;
+    cursor: pointer;
+    text-decoration: underline;
+    font-size: 12.5px;
+    padding: 0;
+    font-family: inherit;
+}
+
+.excel-template-link:hover {
+    color: #047857;
+}
+
+/* ── File Drop Zone ────────────────────────────────────────────── */
+
+.excel-file-zone {
+    position: relative;
+}
+
+.excel-file-input {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    cursor: pointer;
+    z-index: 2;
+}
+
+.excel-file-label {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 28px 20px;
+    border: 2px dashed #cbd5e1;
+    border-radius: 10px;
+    background: #f8fafc;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: center;
+}
+
+.excel-file-label:hover {
+    border-color: #2563eb;
+    background: #eff6ff;
+}
+
+.excel-file-label svg {
+    color: #94a3b8;
+}
+
+.excel-file-placeholder strong,
+.excel-file-selected strong {
+    display: block;
+    font-size: 13px;
+    color: #334155;
+}
+
+.excel-file-placeholder span,
+.excel-file-selected span {
+    display: block;
+    font-size: 11.5px;
+    color: #94a3b8;
+    margin-top: 2px;
+}
+
+.excel-file-selected strong {
+    color: #059669;
+}
+
+/* ── Alerts ────────────────────────────────────────────────────── */
+
+.excel-alert {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-size: 12.5px;
+    line-height: 1.45;
+}
+
+.excel-alert svg {
+    flex-shrink: 0;
+    margin-top: 1px;
+}
+
+.excel-alert-error {
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    color: #991b1b;
+}
+
+.excel-alert-success {
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    color: #166534;
+}
+
+/* ── Import Result Stats ───────────────────────────────────────── */
+
+.excel-import-result {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.excel-result-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+}
+
+.excel-result-stat {
+    text-align: center;
+    padding: 12px 8px;
+    background: #f8fafc;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+}
+
+.excel-result-stat .stat-num {
+    display: block;
+    font-size: 22px;
+    font-weight: 800;
+    line-height: 1;
+}
+
+.excel-result-stat .stat-num.green { color: #059669; }
+.excel-result-stat .stat-num.blue { color: #2563eb; }
+.excel-result-stat .stat-num.amber { color: #d97706; }
+
+.excel-result-stat .stat-label {
+    display: block;
+    font-size: 11px;
+    color: #64748b;
+    margin-top: 4px;
+    text-transform: uppercase;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
+
+/* ── Error List ────────────────────────────────────────────────── */
+
+.excel-error-list {
+    padding: 12px 14px;
+    background: #fffbeb;
+    border: 1px solid #fde68a;
+    border-radius: 8px;
+    font-size: 12px;
+    color: #92400e;
+    max-height: 160px;
+    overflow-y: auto;
+}
+
+.excel-error-list strong {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 12.5px;
+}
+
+.excel-error-list ul {
+    margin: 0;
+    padding-left: 18px;
+    list-style: disc;
+}
+
+.excel-error-list li {
+    margin-bottom: 3px;
+    line-height: 1.4;
+}
+
+/* ── Footer ────────────────────────────────────────────────────── */
+
+.excel-modal-footer {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    padding: 14px 24px 18px;
+    border-top: 1px solid #f1f5f9;
+}
+
+.excel-btn-cancel {
+    background: #f1f5f9;
+    color: #475569;
+    border-color: #e2e8f0;
+}
+
+.excel-btn-cancel:hover {
+    background: #e2e8f0;
+}
+
+.excel-btn-import {
+    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+    color: #fff;
+    border-color: rgba(37, 99, 235, 0.3);
+}
+
+.excel-btn-import:hover:not(:disabled) {
+    background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
+}

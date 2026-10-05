@@ -18,10 +18,13 @@ import {
     Package,
     ArrowLeft,
     Check,
-    Eye
+    Eye,
+    FileText
 } from "lucide-react";
 import api from "../services/api";
 import "./SalesOrders.css";
+import ExcelToolbar from "../components/ExcelToolbar";
+import PdfExportModal from "../components/PdfExportModal";
 
 const emptyItem = {
     product_id: "",
@@ -59,6 +62,21 @@ function SalesOrders() {
     // View Order Details Modal
     const [viewingOrder, setViewingOrder] = useState(null);
     const [viewLoading, setViewLoading] = useState(false);
+
+    // PDF Export Modal State
+    const [pdfModalConfig, setPdfModalConfig] = useState({
+        isOpen: false,
+        orderId: null,
+        orderNumber: ""
+    });
+
+    const handleOpenPdfModal = (order) => {
+        setPdfModalConfig({
+            isOpen: true,
+            orderId: order.id,
+            orderNumber: order.order_number
+        });
+    };
 
     const [search, setSearch] = useState("");
     const [statusFilter, setStatusFilter] = useState("ALL");
@@ -423,6 +441,11 @@ function SalesOrders() {
                             >
                                 <RefreshCw size={14} className={loading ? "so-spin" : ""} />
                             </button>
+                            <ExcelToolbar
+                                moduleName="sales_orders"
+                                displayName="Sales Orders"
+                                onImportDone={loadData}
+                            />
                             <button
                                 type="button"
                                 className="so-btn secondary"
@@ -627,7 +650,7 @@ function SalesOrders() {
                                                     {order.status}
                                                 </span>
                                             </td>
-                                            <td>
+                                            <td style={{ textAlign: "right" }}>
                                                 <div className="so-actions-row">
                                                     <button
                                                         type="button"
@@ -635,7 +658,15 @@ function SalesOrders() {
                                                         onClick={() => handleViewOrder(order.id)}
                                                         title="View Order Details"
                                                     >
-                                                        <Eye size={13} /> View
+                                                        <Eye size={12} /> View
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        className="so-tbl-btn pdf"
+                                                        onClick={() => handleOpenPdfModal(order)}
+                                                        title="Print Proforma Invoice / Order Confirmation PDF"
+                                                    >
+                                                        <FileText size={12} /> Proforma
                                                     </button>
                                                     <button
                                                         type="button"
@@ -643,7 +674,7 @@ function SalesOrders() {
                                                         onClick={() => handleEdit(order.id)}
                                                         title="Edit Sales Order"
                                                     >
-                                                        <Edit2 size={13} /> Edit
+                                                        <Edit2 size={12} /> Edit
                                                     </button>
                                                     <button
                                                         type="button"
@@ -651,7 +682,7 @@ function SalesOrders() {
                                                         onClick={() => handleDelete(order.id)}
                                                         title="Delete Sales Order"
                                                     >
-                                                        <Trash2 size={13} />
+                                                        <Trash2 size={12} />
                                                     </button>
                                                 </div>
                                             </td>
@@ -1013,6 +1044,16 @@ function SalesOrders() {
                         </div>
 
                         <div className="so-modal-actions">
+                            <button
+                                type="button"
+                                className="so-btn"
+                                style={{ background: "#ecfdf5", color: "#047857", borderColor: "#a7f3d0" }}
+                                onClick={() => {
+                                    handleOpenPdfModal(viewingOrder);
+                                }}
+                            >
+                                <FileText size={14} /> Print Proforma Invoice (PDF)
+                            </button>
                             <button type="button" className="so-btn secondary" onClick={() => setViewingOrder(null)}>
                                 Close
                             </button>
@@ -1031,6 +1072,16 @@ function SalesOrders() {
                     </div>
                 </div>
             )}
+
+            {/* Auto-Adjusting PDF Format Selector Modal */}
+            <PdfExportModal
+                isOpen={pdfModalConfig.isOpen}
+                onClose={() => setPdfModalConfig((prev) => ({ ...prev, isOpen: false }))}
+                documentType="sales-order"
+                documentId={pdfModalConfig.orderId}
+                documentTitle="Sales Order Proforma Invoice"
+                documentRef={pdfModalConfig.orderNumber}
+            />
         </div>
     );
 }

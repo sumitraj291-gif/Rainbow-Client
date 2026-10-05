@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import api from "../services/api";
 import "./Employees.css";
+import ExcelToolbar from "../components/ExcelToolbar";
 
 const initialForm = {
     employee_code: "",
@@ -333,6 +334,11 @@ function Employees() {
                     >
                         <RefreshCw size={17} className={loading ? "emp-spin" : ""} />
                     </button>
+                    <ExcelToolbar
+                        moduleName="employees"
+                        displayName="Employees"
+                        onImportDone={loadEmployees}
+                    />
                     <button
                         type="button"
                         className="emp-btn secondary"

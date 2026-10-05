@@ -28,6 +28,7 @@ import {
     TrendingUp
 } from "lucide-react";
 import "./RawMaterials.css";
+import ExcelToolbar from "../components/ExcelToolbar";
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
@@ -512,6 +513,11 @@ export default function RawMaterials() {
                     >
                         <RefreshCw size={17} className={loading ? "rm-spin" : ""} />
                     </button>
+                    <ExcelToolbar
+                        moduleName="raw_materials"
+                        displayName="Raw Materials"
+                        onImportDone={loadData}
+                    />
                     <button
                         type="button"
                         className="rm-seed-btn"

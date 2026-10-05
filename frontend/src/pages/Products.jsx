@@ -10,9 +10,13 @@ import {
     Edit2,
     Trash2,
     X,
-    AlertCircle
+    AlertCircle,
+    Layers,
+    Sparkles,
+    FlaskConical
 } from "lucide-react";
-import "./Customers.css";
+import "./Products.css";
+import ExcelToolbar from "../components/ExcelToolbar";
 
 const initialForm = {
     product_code: "",
@@ -54,6 +58,122 @@ const Products = () => {
     const [statusFilter, setStatusFilter] = useState("ALL");
 
     const [form, setForm] = useState(initialForm);
+
+    // BOM Modal State
+    const [showBOMModal, setShowBOMModal] = useState(false);
+    const [selectedBOMProduct, setSelectedBOMProduct] = useState(null);
+    const [bomItems, setBomItems] = useState([]);
+    const [availableMaterials, setAvailableMaterials] = useState([]);
+    const [bomLoading, setBomLoading] = useState(false);
+    const [bomSaving, setBomSaving] = useState(false);
+    const [newBOMItem, setNewBOMItem] = useState({
+        material_id: "",
+        quantity_per_unit: "",
+        wastage_percentage: "1.0"
+    });
+
+    const openBOMModal = async (product) => {
+        setSelectedBOMProduct(product);
+        setShowBOMModal(true);
+        setBomLoading(true);
+        try {
+            const res = await api.get(`/products/${product.id}/bom`);
+            if (res.data?.success) {
+                setBomItems(res.data.data || []);
+                setAvailableMaterials(res.data.available_materials || []);
+                if (res.data.available_materials?.length > 0) {
+                    setNewBOMItem(prev => ({ ...prev, material_id: String(res.data.available_materials[0].id) }));
+                }
+            }
+        } catch (err) {
+            console.error("Load BOM error:", err);
+            setError("Failed to load product BOM.");
+        } finally {
+            setBomLoading(false);
+        }
+    };
+
+    const handleAddBOMItem = (e) => {
+        e.preventDefault();
+        if (!newBOMItem.material_id || !newBOMItem.quantity_per_unit) return;
+        const mat = availableMaterials.find(m => String(m.id) === String(newBOMItem.material_id));
+        if (!mat) return;
+
+        if (bomItems.some(i => String(i.material_id) === String(newBOMItem.material_id))) {
+            alert("This material is already in the BOM. Remove it first to update quantity.");
+            return;
+        }
+
+        const qty = parseFloat(newBOMItem.quantity_per_unit);
+        const waste = parseFloat(newBOMItem.wastage_percentage || 0);
+        const cost = (qty * (1 + waste / 100) * (mat.standard_purchase_rate || 0)).toFixed(2);
+
+        setBomItems([
+            ...bomItems,
+            {
+                material_id: mat.id,
+                material_name: mat.material_name,
+                material_code: mat.material_code,
+                category_name: mat.category_name,
+                unit_symbol: mat.unit_symbol,
+                quantity_per_unit: qty,
+                wastage_percentage: waste,
+                unit_cost_inr: cost
+            }
+        ]);
+
+        setNewBOMItem(prev => ({
+            ...prev,
+            quantity_per_unit: ""
+        }));
+    };
+
+    const handleRemoveBOMItem = (index) => {
+        setBomItems(bomItems.filter((_, idx) => idx !== index));
+    };
+
+    const handleSaveBOM = async () => {
+        if (!selectedBOMProduct) return;
+        setBomSaving(true);
+        try {
+            const res = await api.post(`/products/${selectedBOMProduct.id}/bom`, {
+                items: bomItems.map(i => ({
+                    material_id: i.material_id,
+                    quantity_per_unit: i.quantity_per_unit,
+                    wastage_percentage: i.wastage_percentage
+                }))
+            });
+            if (res.data?.success) {
+                setSuccess(`BOM for ${selectedBOMProduct.product_name} saved! Standard cost: ₹${res.data.bom_cost}`);
+                setShowBOMModal(false);
+                await loadProducts();
+            } else {
+                setError(res.data?.message || "Failed to save BOM");
+            }
+        } catch (err) {
+            console.error("Save BOM error:", err);
+            setError("Server error while saving BOM.");
+        } finally {
+            setBomSaving(false);
+        }
+    };
+
+    const handleSeedBOM = async () => {
+        if (!window.confirm("Seed default industry-standard BOM formulations for all PVC carpets and rolls?")) return;
+        try {
+            setLoading(true);
+            const res = await api.post("/products/seed-bom");
+            if (res.data?.success) {
+                setSuccess(res.data.message);
+                await loadProducts();
+            }
+        } catch (err) {
+            console.error("Seed BOM error:", err);
+            setError("Failed to seed BOM.");
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const loadProducts = async () => {
         try {
@@ -350,12 +470,17 @@ const Products = () => {
             (product) => product.status === "INACTIVE"
         ).length;
 
+        const categoriesCount = new Set(
+            products.map((p) => p.category_name || p.category_code).filter(Boolean)
+        ).size;
+
         return {
             total: products.length,
             active,
-            inactive
+            inactive,
+            categoriesCount: categoriesCount || categories.length || 0
         };
-    }, [products]);
+    }, [products, categories]);
 
     const formatMoney = (value) => {
         const amount = Number(value || 0);
@@ -376,29 +501,71 @@ const Products = () => {
         });
     };
 
-    return (
-        <div className="customers-page products-page">
+    const formatDimensions = (product) => {
+        const w = Number(product.width_mm || 0);
+        const l = Number(product.length_m || 0);
+        const t = Number(product.thickness_mm || 0);
+        const gsm = product.gsm ? `${formatNumber(product.gsm, 0)} GSM` : null;
 
-            <div className="customers-header-card">
-                <div className="customers-header-info">
+        let dim = "";
+        if (w > 0 && t > 0) {
+            dim = `${formatNumber(w, 0)} × ${formatNumber(t)} mm`;
+        } else if (w > 0 && l > 0) {
+            dim = `${formatNumber(w, 0)} mm × ${formatNumber(l, 1)} m`;
+        } else if (t > 0) {
+            dim = `${formatNumber(t)} mm thick`;
+        } else if (w > 0) {
+            dim = `${formatNumber(w, 0)} mm width`;
+        }
+
+        if (dim && gsm) {
+            return `${dim} / ${gsm}`;
+        }
+        return dim || gsm || "Standard Spec";
+    };
+
+    return (
+        <div className="products-page">
+
+            <div className="prd-header-card">
+                <div className="prd-header-info">
+                    <div className="prd-eyebrow">
+                        <Package size={13} /> PVC MANUFACTURING ERP
+                    </div>
                     <h1>Products</h1>
                     <p>Manage PVC carpet products, specifications, routing and pricing.</p>
                 </div>
-                <div className="customers-header-actions">
+                <div className="prd-header-actions">
                     <button
-                        className="cust-refresh-btn"
+                        className="prd-refresh-btn"
                         onClick={loadProducts}
                         title="Refresh List"
                         type="button"
                     >
-                        <RefreshCw size={17} className={loading ? "animate-spin" : ""} />
+                        <RefreshCw size={15} className={loading ? "animate-spin" : ""} />
                     </button>
                     <button
                         type="button"
-                        className="primary-button cust-primary-btn"
+                        className="prd-btn seed"
+                        onClick={handleSeedBOM}
+                        title="Seed Standard BOM Formulations"
+                    >
+                        <Sparkles size={14} />
+                        Seed Standard BOM
+                    </button>
+
+                    <ExcelToolbar
+                        moduleName="products"
+                        displayName="Products"
+                        onImportDone={loadProducts}
+                    />
+
+                    <button
+                        type="button"
+                        className="prd-btn primary"
                         onClick={openAddForm}
                     >
-                        <Plus size={16} strokeWidth={2.5} />
+                        <Plus size={15} strokeWidth={2.5} />
                         Add Product
                     </button>
                 </div>
@@ -418,34 +585,44 @@ const Products = () => {
                 </div>
             )}
 
-            <div className="customers-stats-grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
-                <div className="cust-stat-card">
-                    <div className="cust-stat-icon blue">
+            <div className="prd-stats-grid">
+                <div className="prd-stat-card">
+                    <div className="prd-stat-icon blue">
                         <Package size={22} />
                     </div>
-                    <div className="cust-stat-content">
-                        <span className="cust-stat-label">Total Products</span>
-                        <span className="cust-stat-value">{summary.total}</span>
+                    <div className="prd-stat-content">
+                        <span className="prd-stat-label">Total Products</span>
+                        <span className="prd-stat-value">{summary.total}</span>
                     </div>
                 </div>
 
-                <div className="cust-stat-card">
-                    <div className="cust-stat-icon green">
+                <div className="prd-stat-card">
+                    <div className="prd-stat-icon green">
                         <CheckCircle2 size={22} />
                     </div>
-                    <div className="cust-stat-content">
-                        <span className="cust-stat-label">Active</span>
-                        <span className="cust-stat-value">{summary.active}</span>
+                    <div className="prd-stat-content">
+                        <span className="prd-stat-label">Active</span>
+                        <span className="prd-stat-value">{summary.active}</span>
                     </div>
                 </div>
 
-                <div className="cust-stat-card">
-                    <div className="cust-stat-icon amber">
+                <div className="prd-stat-card">
+                    <div className="prd-stat-icon amber">
                         <XCircle size={22} />
                     </div>
-                    <div className="cust-stat-content">
-                        <span className="cust-stat-label">Inactive</span>
-                        <span className="cust-stat-value">{summary.inactive}</span>
+                    <div className="prd-stat-content">
+                        <span className="prd-stat-label">Inactive</span>
+                        <span className="prd-stat-value">{summary.inactive}</span>
+                    </div>
+                </div>
+
+                <div className="prd-stat-card">
+                    <div className="prd-stat-icon purple">
+                        <Layers size={22} />
+                    </div>
+                    <div className="prd-stat-content">
+                        <span className="prd-stat-label">Categories</span>
+                        <span className="prd-stat-value">{summary.categoriesCount}</span>
                     </div>
                 </div>
             </div>
@@ -870,9 +1047,9 @@ const Products = () => {
                 </div>
             )}
 
-            <div className="customers-filter-bar">
-                <div className="cust-search-wrap">
-                    <Search size={16} color="#94a3b8" />
+            <div className="prd-toolbar">
+                <div className="prd-search-box">
+                    <Search size={15} color="#94a3b8" />
                     <input
                         type="text"
                         placeholder="Search product code, name, carpet type, colour..."
@@ -882,17 +1059,18 @@ const Products = () => {
                     {search && (
                         <button
                             type="button"
-                            className="cust-clear-search"
+                            className="prd-clear-btn"
                             onClick={() => { setSearch(""); loadProducts(); }}
+                            title="Clear search"
                         >
-                            <X size={14} />
+                            <X size={13} />
                         </button>
                     )}
                 </div>
 
-                <div className="cust-filter-group">
+                <div className="prd-filter-group">
                     <select
-                        className="cust-filter-select"
+                        className="prd-filter-select"
                         value={statusFilter}
                         onChange={(event) => setStatusFilter(event.target.value)}
                     >
@@ -903,521 +1081,402 @@ const Products = () => {
                 </div>
             </div>
 
-            <div className="customers-table-card">
-
-                <table className="cust-table products-table">
-
-                    <thead>
-                        <tr>
-                            <th>Code</th>
-                            <th>Product</th>
-                            <th>Category</th>
-                            <th>Specifications</th>
-                            <th>Price</th>
-                            <th>Status</th>
-                            <th style={{ textAlign: 'right' }}>Actions</th>
-                        </tr>
-                    </thead>
-
-                    <tbody>
-
-                        {loading ? (
+            <div className="prd-table-card">
+                <div className="prd-table-responsive">
+                    <table className="prd-table">
+                        <thead>
                             <tr>
-                                <td
-                                    colSpan="7"
-                                    className="table-state"
-                                >
-                                    Loading products...
-                                </td>
+                                <th>Code</th>
+                                <th>Product Details</th>
+                                <th>Category</th>
+                                <th>Specifications</th>
+                                <th>Commercial Price</th>
+                                <th>Status</th>
+                                <th style={{ textAlign: "right" }}>Actions</th>
                             </tr>
-                        ) : products.length === 0 ? (
-                            <tr>
-                                <td
-                                    colSpan="7"
-                                    className="table-state"
-                                >
-                                    <div className="products-empty">
-                                        <strong>
-                                            No products found
-                                        </strong>
+                        </thead>
 
-                                        <span>
-                                            Add a PVC carpet product
-                                            or change your filters.
-                                        </span>
-                                    </div>
-                                </td>
-                            </tr>
-                        ) : (
-                            products.map((product) => (
-                                <tr key={product.id}>
-
-                                    <td>
-                                        <span className="cust-code-badge">
-                                            {product.product_code}
-                                        </span>
+                        <tbody>
+                            {loading ? (
+                                <tr>
+                                    <td colSpan="7" className="table-state">
+                                        Loading products...
                                     </td>
-
-                                    <td>
-                                        <div className="cust-company-cell">
-                                            <strong>{product.product_name}</strong>
-                                            {product.design_pattern && (
-                                                <small>{product.design_pattern}</small>
-                                            )}
-                                        </div>
-                                    </td>
-
-                                    <td>
-                                        {product.category_name ||
-                                            product.category_code ||
-                                            "—"}
-                                    </td>
-
-                                    <td>
-                                        <div className="cust-company-cell">
-                                            <strong style={{ fontWeight: 500 }}>{product.carpet_type || "PVC carpet"}</strong>
-                                            <small>{product.colour || "—"}</small>
-                                            <small>{formatNumber(product.width_mm)} × {formatNumber(product.thickness_mm)} mm{product.gsm != null && ` / ${formatNumber(product.gsm, 0)} GSM`}</small>
-                                        </div>
-                                    </td>
-
-                                    <td>
-                                        <strong>
-                                            {formatMoney(
-                                                product.selling_price
-                                            )}
-                                        </strong>
-
-                                        <div className="table-secondary">
-                                            Cost{" "}
-                                            {formatMoney(
-                                                product.standard_cost
-                                            )}
-                                        </div>
-                                    </td>
-
-                                    <td>
-                                        <span className={`cust-status-pill ${product.status === "ACTIVE" ? "active" : "inactive"}`}>
-                                            {product.status}
-                                        </span>
-                                    </td>
-
-                                    <td style={{ textAlign: 'right' }}>
-                                        <div className="cust-actions-cell" style={{ justifyContent: 'flex-end' }}>
-                                            <button
-                                                type="button"
-                                                className="cust-action-btn edit"
-                                                title="Edit Product"
-                                                onClick={() => openEditForm(product)}
-                                            >
-                                                <Edit2 size={15} />
-                                            </button>
-                                            <button
-                                                type="button"
-                                                className="cust-action-btn delete"
-                                                title="Delete Product"
-                                                onClick={() => handleDelete(product)}
-                                            >
-                                                <Trash2 size={15} />
-                                            </button>
-                                        </div>
-                                    </td>
-
                                 </tr>
-                            ))
-                        )}
+                            ) : products.length === 0 ? (
+                                <tr>
+                                    <td colSpan="7" className="table-state">
+                                        <div className="products-empty">
+                                            <strong>No products found</strong>
+                                            <span>Add a PVC carpet product or change your filters.</span>
+                                        </div>
+                                    </td>
+                                </tr>
+                            ) : (
+                                products.map((product) => (
+                                    <tr key={product.id}>
+                                        <td>
+                                            <span className="prd-code-badge">
+                                                {product.product_code}
+                                            </span>
+                                        </td>
 
-                    </tbody>
+                                        <td>
+                                            <div className="prd-name-cell">
+                                                <strong>{product.product_name}</strong>
+                                                {product.design_pattern && (
+                                                    <span>{product.design_pattern}</span>
+                                                )}
+                                            </div>
+                                        </td>
 
-                </table>
+                                        <td>
+                                            <span style={{ color: "#334155", fontWeight: 500 }}>
+                                                {product.category_name || product.category_code || "—"}
+                                            </span>
+                                        </td>
 
+                                        <td>
+                                            <div className="prd-spec-cell">
+                                                <span className="spec-main">{product.carpet_type || "PVC Carpet"}</span>
+                                                {product.colour && <span className="spec-sub">{product.colour}</span>}
+                                                <span className="spec-sub" style={{ color: "#2563eb", fontWeight: 600 }}>
+                                                    {formatDimensions(product)}
+                                                </span>
+                                            </div>
+                                        </td>
+
+                                        <td>
+                                            <div className="prd-price-cell">
+                                                <span className="price-sell">
+                                                    {formatMoney(product.selling_price)}
+                                                </span>
+                                                <span className="price-cost">
+                                                    Cost {formatMoney(product.standard_cost)}
+                                                </span>
+                                            </div>
+                                        </td>
+
+                                        <td>
+                                            <span className={`prd-status-pill ${product.status === "ACTIVE" ? "active" : "inactive"}`}>
+                                                {product.status}
+                                            </span>
+                                        </td>
+
+                                        <td style={{ textAlign: "right" }}>
+                                            <div className="prd-actions-cell">
+                                                <button
+                                                    type="button"
+                                                    className="prd-action-btn bom"
+                                                    title="View / Configure Bill of Materials (BOM Formulation)"
+                                                    onClick={() => openBOMModal(product)}
+                                                >
+                                                    <Layers size={13} />
+                                                    <span>BOM</span>
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    className="prd-action-btn edit"
+                                                    title="Edit Product Details"
+                                                    onClick={() => openEditForm(product)}
+                                                >
+                                                    <Edit2 size={13} />
+                                                    <span>Edit</span>
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    className="prd-action-btn delete"
+                                                    title="Delete Product"
+                                                    onClick={() => handleDelete(product)}
+                                                >
+                                                    <Trash2 size={13} />
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))
+                            )}
+                        </tbody>
+                    </table>
+                </div>
             </div>
 
-            <div style={{ marginTop: 10, color: '#64748b', fontSize: '0.78rem' }}>
-                Showing <strong>{products.length}</strong> product{products.length === 1 ? '' : 's'}
+            <div style={{ marginTop: 10, color: "#64748b", fontSize: "0.78rem" }}>
+                Showing <strong>{products.length}</strong> product{products.length === 1 ? "" : "s"}
             </div>
 
-            <style>{`
-                .products-page {
-                    width: 100%;
-                    max-width: 100%;
-                }
+            {/* BILL OF MATERIALS (BOM) CONFIGURATION MODAL */}
+            {showBOMModal && selectedBOMProduct && (
+                <div
+                    style={{
+                        position: "fixed",
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        background: "rgba(15, 23, 42, 0.65)",
+                        backdropFilter: "blur(4px)",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        zIndex: 1000,
+                        padding: "20px"
+                    }}
+                    onClick={(e) => {
+                        if (e.target === e.currentTarget) setShowBOMModal(false);
+                    }}
+                >
+                    <div style={{
+                        background: "#ffffff",
+                        borderRadius: "12px",
+                        boxShadow: "0 20px 40px rgba(0, 0, 0, 0.2)",
+                        maxWidth: "860px",
+                        width: "100%",
+                        maxHeight: "90vh",
+                        display: "flex",
+                        flexDirection: "column",
+                        overflow: "hidden"
+                    }}>
+                        <div style={{
+                            padding: "20px 24px",
+                            borderBottom: "1px solid #e2e8f0",
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "flex-start",
+                            background: "#ffffff"
+                        }}>
+                            <div>
+                                <span style={{ fontSize: "0.7rem", fontWeight: "700", color: "#7c3aed", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                                    FORMULATION & INGREDIENT RECIPE
+                                </span>
+                                <h2 style={{ margin: "4px 0 2px", fontSize: "1.25rem", color: "#0f172a" }}>
+                                    Bill of Materials (BOM): {selectedBOMProduct.product_name}
+                                </h2>
+                                <span style={{ fontSize: "0.8rem", color: "#64748b" }}>
+                                    Product Code: <strong style={{ color: "#0f172a" }}>{selectedBOMProduct.product_code}</strong> • Standard Cost: <strong style={{ color: "#16a34a" }}>₹{selectedBOMProduct.standard_cost || 0}</strong>
+                                </span>
+                            </div>
+                            <button
+                                type="button"
+                                style={{ background: "transparent", border: "none", cursor: "pointer", color: "#64748b" }}
+                                onClick={() => setShowBOMModal(false)}
+                            >
+                                <X size={20} />
+                            </button>
+                        </div>
 
-                .products-header {
-                    align-items: flex-start;
-                }
+                        <div style={{ padding: "20px", overflowY: "auto", flex: 1 }}>
+                            {/* Summary Card */}
+                            <div style={{
+                                display: "flex",
+                                justifyContent: "space-between",
+                                alignItems: "center",
+                                padding: "12px 16px",
+                                background: "#f8fafc",
+                                border: "1px solid #e2e8f0",
+                                borderRadius: "8px",
+                                marginBottom: "16px"
+                            }}>
+                                <div>
+                                    <div style={{ fontSize: "0.75rem", color: "#64748b", fontWeight: "600" }}>TOTAL FORMULATION INGREDIENTS</div>
+                                    <div style={{ fontSize: "1.1rem", fontWeight: "800", color: "#0f172a" }}>{bomItems.length} Raw Materials</div>
+                                </div>
+                                <div style={{ textAlign: "right" }}>
+                                    <div style={{ fontSize: "0.75rem", color: "#64748b", fontWeight: "600" }}>TOTAL ESTIMATED BOM COST</div>
+                                    <div style={{ fontSize: "1.25rem", fontWeight: "800", color: "#16a34a" }}>
+                                        ₹{bomItems.reduce((sum, item) => sum + parseFloat(item.unit_cost_inr || 0), 0).toFixed(2)} <span style={{ fontSize: "0.8rem", color: "#64748b" }}>/ unit</span>
+                                    </div>
+                                </div>
+                            </div>
 
-                .products-header h2 {
-                    margin: 0;
-                }
+                            {/* Add Ingredient Form */}
+                            <form onSubmit={handleAddBOMItem} style={{
+                                display: "grid",
+                                gridTemplateColumns: "2fr 1fr 1fr auto",
+                                gap: "10px",
+                                alignItems: "flex-end",
+                                background: "#f1f5f9",
+                                padding: "12px",
+                                borderRadius: "8px",
+                                marginBottom: "16px"
+                            }}>
+                                <div>
+                                    <label style={{ display: "block", fontSize: "0.75rem", fontWeight: "700", color: "#334155", marginBottom: "4px" }}>
+                                        Raw Material / Chemical *
+                                    </label>
+                                    <select
+                                        value={newBOMItem.material_id}
+                                        onChange={(e) => setNewBOMItem({ ...newBOMItem, material_id: e.target.value })}
+                                        style={{ width: "100%", padding: "8px", borderRadius: "6px", border: "1px solid #cbd5e1", fontSize: "0.82rem", background: "#fff" }}
+                                        required
+                                    >
+                                        <option value="">Select Material...</option>
+                                        {availableMaterials.map(m => (
+                                            <option key={m.id} value={m.id}>
+                                                {m.material_name} ({m.material_code}) - {m.unit_symbol} [₹{m.standard_purchase_rate}/{m.unit_symbol}]
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
 
-                .products-add-button {
-                    flex-shrink: 0;
-                    min-width: 130px;
-                }
+                                <div>
+                                    <label style={{ display: "block", fontSize: "0.75rem", fontWeight: "700", color: "#334155", marginBottom: "4px" }}>
+                                        Qty per Unit *
+                                    </label>
+                                    <input
+                                        type="number"
+                                        step="0.001"
+                                        min="0.001"
+                                        placeholder="e.g. 0.450"
+                                        value={newBOMItem.quantity_per_unit}
+                                        onChange={(e) => setNewBOMItem({ ...newBOMItem, quantity_per_unit: e.target.value })}
+                                        style={{ width: "100%", padding: "8px", borderRadius: "6px", border: "1px solid #cbd5e1", fontSize: "0.82rem" }}
+                                        required
+                                    />
+                                </div>
 
-                .products-summary-grid {
-                    display: grid;
-                    grid-template-columns: repeat(3, minmax(0, 1fr));
-                    gap: 16px;
-                    margin-bottom: 18px;
-                }
+                                <div>
+                                    <label style={{ display: "block", fontSize: "0.75rem", fontWeight: "700", color: "#334155", marginBottom: "4px" }}>
+                                        Wastage %
+                                    </label>
+                                    <input
+                                        type="number"
+                                        step="0.1"
+                                        min="0"
+                                        placeholder="e.g. 1.5"
+                                        value={newBOMItem.wastage_percentage}
+                                        onChange={(e) => setNewBOMItem({ ...newBOMItem, wastage_percentage: e.target.value })}
+                                        style={{ width: "100%", padding: "8px", borderRadius: "6px", border: "1px solid #cbd5e1", fontSize: "0.82rem" }}
+                                    />
+                                </div>
 
-                .products-summary-card {
-                    position: relative;
-                    overflow: hidden;
-                    background: #fff;
-                    border: 1px solid #e2e8f0;
-                    border-radius: 10px;
-                    padding: 17px 20px;
-                }
+                                <button
+                                    type="submit"
+                                    style={{
+                                        padding: "8px 14px",
+                                        borderRadius: "6px",
+                                        border: "none",
+                                        background: "#7c3aed",
+                                        color: "#fff",
+                                        fontWeight: "700",
+                                        fontSize: "0.82rem",
+                                        cursor: "pointer",
+                                        display: "inline-flex",
+                                        alignItems: "center",
+                                        gap: "4px",
+                                        height: "36px"
+                                    }}
+                                >
+                                    <Plus size={14} /> Add
+                                </button>
+                            </form>
 
-                .products-summary-card::before {
-                    content: "";
-                    position: absolute;
-                    left: 0;
-                    top: 0;
-                    bottom: 0;
-                    width: 3px;
-                    background: #2563eb;
-                }
+                            {/* BOM Items Table */}
+                            <div style={{ maxHeight: "300px", overflowY: "auto", border: "1px solid #e2e8f0", borderRadius: "6px" }}>
+                                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.82rem" }}>
+                                    <thead style={{ background: "#f8fafc", position: "sticky", top: 0, borderBottom: "1px solid #e2e8f0" }}>
+                                        <tr>
+                                            <th style={{ textAlign: "left", padding: "8px 12px", color: "#475569" }}>Material</th>
+                                            <th style={{ textAlign: "left", padding: "8px 12px", color: "#475569" }}>Category</th>
+                                            <th style={{ textAlign: "right", padding: "8px 12px", color: "#475569" }}>Qty / Unit</th>
+                                            <th style={{ textAlign: "right", padding: "8px 12px", color: "#475569" }}>Wastage %</th>
+                                            <th style={{ textAlign: "right", padding: "8px 12px", color: "#475569" }}>Est. Cost (₹)</th>
+                                            <th style={{ textAlign: "center", padding: "8px 12px", color: "#475569" }}>Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {bomLoading ? (
+                                            <tr>
+                                                <td colSpan={6} style={{ textAlign: "center", padding: "30px", color: "#64748b" }}>
+                                                    Loading BOM ingredients...
+                                                </td>
+                                            </tr>
+                                        ) : bomItems.length === 0 ? (
+                                            <tr>
+                                                <td colSpan={6} style={{ textAlign: "center", padding: "30px", color: "#64748b" }}>
+                                                    No ingredients in this Bill of Materials yet. Add one above or click "Seed Standard BOM".
+                                                </td>
+                                            </tr>
+                                        ) : (
+                                            bomItems.map((item, idx) => (
+                                                <tr key={idx} style={{ borderBottom: "1px solid #f1f5f9" }}>
+                                                    <td style={{ padding: "8px 12px" }}>
+                                                        <strong style={{ color: "#0f172a" }}>{item.material_name}</strong>
+                                                        <div style={{ fontSize: "0.72rem", color: "#7c3aed", fontWeight: "600" }}>{item.material_code}</div>
+                                                    </td>
+                                                    <td style={{ padding: "8px 12px", color: "#64748b" }}>{item.category_name}</td>
+                                                    <td style={{ padding: "8px 12px", textAlign: "right", fontWeight: "700" }}>
+                                                        {item.quantity_per_unit} {item.unit_symbol}
+                                                    </td>
+                                                    <td style={{ padding: "8px 12px", textAlign: "right", color: "#d97706", fontWeight: "600" }}>
+                                                        {item.wastage_percentage}%
+                                                    </td>
+                                                    <td style={{ padding: "8px 12px", textAlign: "right", fontWeight: "700", color: "#16a34a" }}>
+                                                        ₹{item.unit_cost_inr}
+                                                    </td>
+                                                    <td style={{ padding: "8px 12px", textAlign: "center" }}>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleRemoveBOMItem(idx)}
+                                                            style={{ background: "transparent", border: "none", color: "#ef4444", cursor: "pointer" }}
+                                                            title="Remove ingredient"
+                                                        >
+                                                            <Trash2 size={14} />
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            ))
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
 
-                .products-summary-card span {
-                    display: block;
-                    margin-bottom: 8px;
-                    color: #64748b;
-                    font-size: 10px;
-                    font-weight: 700;
-                    letter-spacing: .06em;
-                    text-transform: uppercase;
-                }
-
-                .products-summary-card strong {
-                    color: #0f2747;
-                    font-size: 25px;
-                    line-height: 1;
-                }
-
-                .products-toolbar {
-                    display: grid;
-                    grid-template-columns: minmax(0, 1fr) 210px;
-                    gap: 16px;
-                    align-items: end;
-                    padding: 16px;
-                    margin-bottom: 16px;
-                    background: #fff;
-                    border: 1px solid #e2e8f0;
-                }
-
-                .products-search-wrapper,
-                .products-status-wrapper {
-                    display: flex;
-                    flex-direction: column;
-                    gap: 7px;
-                }
-
-                .products-search-wrapper label,
-                .products-status-wrapper label {
-                    color: #475569;
-                    font-size: 11px;
-                    font-weight: 600;
-                }
-
-                .products-search-wrapper .search-box {
-                    width: 100%;
-                }
-
-                .products-search-wrapper .search-box input,
-                .products-status-wrapper .status-filter {
-                    width: 100%;
-                    height: 42px;
-                    box-sizing: border-box;
-                    border: 1px solid #d7dee8;
-                    border-radius: 8px;
-                    background: #fff;
-                    color: #172033;
-                    font-family: inherit;
-                    font-size: 12px;
-                    outline: none;
-                }
-
-                .products-search-wrapper .search-box input {
-                    padding: 0 12px;
-                }
-
-                .products-search-wrapper .search-box input::placeholder {
-                    color: #94a3b8;
-                }
-
-                .products-search-wrapper .search-box input:focus,
-                .products-status-wrapper .status-filter:focus {
-                    border-color: #2563eb;
-                    box-shadow: 0 0 0 3px rgba(37, 99, 235, .08);
-                }
-
-                .products-status-wrapper .status-filter {
-                    padding: 0 11px;
-                }
-
-                .products-table-container {
-                    width: 100%;
-                    overflow-x: auto;
-                    background: #fff;
-                    border: 1px solid #e2e8f0;
-                }
-
-                .products-table {
-                    min-width: 980px;
-                    width: 100%;
-                }
-
-                .products-table th {
-                    height: 44px;
-                    padding: 0 13px;
-                    background: #f8fafc;
-                    border-bottom: 1px solid #e2e8f0;
-                    color: #64748b;
-                    font-size: 10px;
-                    font-weight: 700;
-                    letter-spacing: .05em;
-                    text-align: left;
-                    text-transform: uppercase;
-                    white-space: nowrap;
-                }
-
-                .products-table td {
-                    min-height: 58px;
-                    padding: 10px 13px;
-                    border-bottom: 1px solid #edf1f5;
-                    color: #344054;
-                    font-size: 12px;
-                    vertical-align: middle;
-                }
-
-                .products-table tbody tr:hover {
-                    background: #fafcff;
-                }
-
-                .products-table tbody tr:last-child td {
-                    border-bottom: none;
-                }
-
-                .product-code {
-                    display: inline-block;
-                    padding: 5px 7px;
-                    border-radius: 5px;
-                    background: #eff6ff;
-                    color: #2563eb;
-                    font-size: 11px;
-                    font-weight: 700;
-                }
-
-                .products-table .table-primary {
-                    color: #172033;
-                    font-size: 12px;
-                    font-weight: 600;
-                }
-
-                .products-table .table-secondary {
-                    margin-top: 3px;
-                    color: #98a2b3;
-                    font-size: 10px;
-                }
-
-                .products-table .table-actions {
-                    display: flex;
-                    gap: 6px;
-                }
-
-                .products-table .table-action {
-                    min-width: 48px;
-                    height: 30px;
-                    padding: 0 9px;
-                    border: 1px solid #dbe2ea;
-                    border-radius: 6px;
-                    background: #fff;
-                    font-family: inherit;
-                    font-size: 10px;
-                    font-weight: 600;
-                    cursor: pointer;
-                }
-
-                .products-table .table-action.edit {
-                    color: #2563eb;
-                }
-
-                .products-table .table-action.edit:hover {
-                    background: #eff6ff;
-                    border-color: #bfdbfe;
-                }
-
-                .products-table .table-action.delete {
-                    color: #dc2626;
-                }
-
-                .products-table .table-action.delete:hover {
-                    background: #fef2f2;
-                    border-color: #fecaca;
-                }
-
-                .products-empty {
-                    display: flex;
-                    flex-direction: column;
-                    align-items: center;
-                    gap: 5px;
-                }
-
-                .products-empty strong {
-                    color: #475569;
-                    font-size: 12px;
-                }
-
-                .products-empty span {
-                    color: #94a3b8;
-                    font-size: 10px;
-                }
-
-                .products-form-panel {
-                    margin-bottom: 18px;
-                    border: 1px solid #dfe6ee;
-                    background: #fff;
-                }
-
-                .products-form-panel .form-section {
-                    padding: 18px 20px;
-                    border-bottom: 1px solid #edf1f5;
-                }
-
-                .products-form-panel .form-section-title {
-                    margin-bottom: 16px;
-                    color: #0f2747;
-                    font-size: 12px;
-                    font-weight: 700;
-                }
-
-                .products-form-panel .form-grid {
-                    display: grid;
-                    grid-template-columns: repeat(3, minmax(0, 1fr));
-                    gap: 15px;
-                }
-
-                .products-form-panel .form-field {
-                    display: flex;
-                    flex-direction: column;
-                    gap: 6px;
-                }
-
-                .products-form-panel .form-field label {
-                    color: #475569;
-                    font-size: 10px;
-                    font-weight: 600;
-                }
-
-                .products-form-panel .form-field input,
-                .products-form-panel .form-field select {
-                    width: 100%;
-                    height: 40px;
-                    box-sizing: border-box;
-                    padding: 0 10px;
-                    border: 1px solid #d7dee8;
-                    border-radius: 7px;
-                    background: #fff;
-                    color: #172033;
-                    font-family: inherit;
-                    font-size: 11px;
-                    outline: none;
-                }
-
-                .products-form-panel .form-field input:focus,
-                .products-form-panel .form-field select:focus {
-                    border-color: #2563eb;
-                    box-shadow: 0 0 0 3px rgba(37, 99, 235, .08);
-                }
-
-                .products-form-panel .form-actions {
-                    display: flex;
-                    justify-content: flex-end;
-                    gap: 9px;
-                    padding: 16px 20px;
-                }
-
-                .products-form-panel .primary-button,
-                .products-form-panel .secondary-button,
-                .products-header .primary-button {
-                    min-height: 40px;
-                    padding: 0 15px;
-                    border-radius: 7px;
-                    font-family: inherit;
-                    font-size: 11px;
-                    font-weight: 600;
-                    cursor: pointer;
-                }
-
-                .products-form-panel .primary-button,
-                .products-header .primary-button {
-                    border: 1px solid #2563eb;
-                    background: #2563eb;
-                    color: #fff;
-                }
-
-                .products-form-panel .primary-button:hover,
-                .products-header .primary-button:hover {
-                    background: #1d4ed8;
-                    border-color: #1d4ed8;
-                }
-
-                .products-form-panel .secondary-button {
-                    border: 1px solid #d7dee8;
-                    background: #fff;
-                    color: #475569;
-                }
-
-                .products-form-panel .secondary-button:hover {
-                    background: #f8fafc;
-                }
-
-                .products-footer {
-                    margin-top: 10px;
-                    color: #64748b;
-                    font-size: 10px;
-                }
-
-                @media (max-width: 900px) {
-                    .products-summary-grid {
-                        grid-template-columns: 1fr;
-                    }
-
-                    .products-form-panel .form-grid {
-                        grid-template-columns: repeat(2, minmax(0, 1fr));
-                    }
-                }
-
-                @media (max-width: 650px) {
-                    .products-header {
-                        flex-direction: column;
-                    }
-
-                    .products-add-button {
-                        width: 100%;
-                    }
-
-                    .products-toolbar {
-                        grid-template-columns: 1fr;
-                    }
-
-                    .products-form-panel .form-grid {
-                        grid-template-columns: 1fr;
-                    }
-
-                    .products-form-panel .form-actions {
-                        flex-direction: column-reverse;
-                    }
-
-                    .products-form-panel .form-actions button {
-                        width: 100%;
-                    }
-                }
-            `}</style>
+                            {/* Modal Footer Actions */}
+                            <div style={{ display: "flex", justifyContent: "flex-end", gap: "8px", marginTop: "18px" }}>
+                                <button
+                                    type="button"
+                                    onClick={() => setShowBOMModal(false)}
+                                    style={{
+                                        height: "34px",
+                                        padding: "0 14px",
+                                        borderRadius: "6px",
+                                        border: "1px solid #cbd5e1",
+                                        background: "#fff",
+                                        color: "#475569",
+                                        fontSize: "12.5px",
+                                        fontWeight: "600",
+                                        cursor: "pointer"
+                                    }}
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={handleSaveBOM}
+                                    disabled={bomSaving}
+                                    style={{
+                                        height: "34px",
+                                        padding: "0 16px",
+                                        borderRadius: "6px",
+                                        border: "none",
+                                        background: "#16a34a",
+                                        color: "#fff",
+                                        fontSize: "12.5px",
+                                        fontWeight: "700",
+                                        cursor: "pointer",
+                                        display: "inline-flex",
+                                        alignItems: "center",
+                                        gap: "6px"
+                                    }}
+                                >
+                                    <CheckCircle2 size={15} />
+                                    {bomSaving ? "Saving..." : "Save Bill of Materials"}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

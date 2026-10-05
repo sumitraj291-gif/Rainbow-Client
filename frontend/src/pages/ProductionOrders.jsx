@@ -16,10 +16,13 @@ import {
     X,
     AlertCircle,
     Calendar,
-    TrendingUp
+    TrendingUp,
+    FileDown
 } from "lucide-react";
 import api from "../services/api";
 import "./ProductionOrders.css";
+import ExcelToolbar from "../components/ExcelToolbar";
+import PdfExportModal from "../components/PdfExportModal";
 
 const initialForm = {
     production_order_number: "",
@@ -94,6 +97,23 @@ export default function ProductionOrders() {
 
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
+
+    // PDF Job Card Modal State
+    const [pdfModal, setPdfModal] = useState({
+        isOpen: false,
+        endpoint: "",
+        title: "",
+        docNumber: ""
+    });
+
+    const handleOpenJobCardPdf = (order) => {
+        setPdfModal({
+            isOpen: true,
+            endpoint: `/pdf/production-order/${order.id}`,
+            title: `Job Card – ${order.production_order_number} (${order.product_name})`,
+            docNumber: order.production_order_number
+        });
+    };
 
     const loadOrders = async () => {
         try {
@@ -389,6 +409,11 @@ export default function ProductionOrders() {
                     >
                         <RefreshCw size={17} className={loading ? "po-spin" : ""} />
                     </button>
+                    <ExcelToolbar
+                        moduleName="production_orders"
+                        displayName="Production Orders"
+                        onImportDone={loadOrders}
+                    />
                     <button
                         type="button"
                         className="po-btn secondary"
@@ -646,11 +671,19 @@ export default function ProductionOrders() {
                                                 <div className="po-actions-row">
                                                     <button
                                                         type="button"
+                                                        className="po-tbl-btn job-card"
+                                                        onClick={() => handleOpenJobCardPdf(order)}
+                                                        title="Configure paper size (A4 / A5 / Letter) & download Job Card PDF"
+                                                    >
+                                                        <FileDown size={12} /> Job Card
+                                                    </button>
+                                                    <button
+                                                        type="button"
                                                         className="po-tbl-btn"
                                                         onClick={() => openEditModal(order)}
                                                         title="Edit Order"
                                                     >
-                                                        <Edit2 size={13} /> Edit
+                                                        <Edit2 size={12} /> Edit
                                                     </button>
                                                     <button
                                                         type="button"
@@ -658,7 +691,7 @@ export default function ProductionOrders() {
                                                         onClick={() => handleDelete(order)}
                                                         title="Delete Order"
                                                     >
-                                                        <Trash2 size={13} />
+                                                        <Trash2 size={12} />
                                                     </button>
                                                 </div>
                                             </td>
@@ -898,6 +931,15 @@ export default function ProductionOrders() {
                     </div>
                 </div>
             )}
+
+            {/* PDF EXPORT MODAL */}
+            <PdfExportModal
+                isOpen={pdfModal.isOpen}
+                onClose={() => setPdfModal(prev => ({ ...prev, isOpen: false }))}
+                apiEndpoint={pdfModal.endpoint}
+                documentTitle={pdfModal.title}
+                referenceNumber={pdfModal.docNumber}
+            />
         </div>
     );
 }

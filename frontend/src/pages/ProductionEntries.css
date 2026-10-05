@@ -151,6 +151,85 @@
     align-items: center;
 }
 
+/* Auto-Consumed BOM Feedback Banner */
+.pe-auto-consumed-card {
+    background: #f0fdfa;
+    border: 1px solid #99f6e4;
+    border-radius: 9px;
+    padding: 14px 18px;
+    box-shadow: 0 2px 4px rgba(13, 148, 136, 0.05);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.pe-auto-consumed-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.pe-auto-consumed-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #0f766e;
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.pe-sparkle-icon {
+    color: #0d9488;
+}
+
+.pe-auto-consumed-sub {
+    margin: 0;
+    font-size: 0.78rem;
+    color: #115e59;
+}
+
+.pe-consumed-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 4px;
+}
+
+.pe-consumed-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: #ffffff;
+    border: 1px solid #ccfbf1;
+    border-radius: 6px;
+    padding: 4px 10px;
+    font-size: 0.78rem;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+}
+
+.pe-chip-code {
+    font-family: monospace;
+    font-weight: 700;
+    color: #0d9488;
+    background: #e6fffa;
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: 0.72rem;
+}
+
+.pe-chip-name {
+    color: #334155;
+    font-weight: 500;
+}
+
+.pe-chip-qty {
+    font-weight: 700;
+    color: #dc2626;
+    background: #fef2f2;
+    padding: 1px 6px;
+    border-radius: 4px;
+}
+
 /* KPI Summary Stat Cards */
 .pe-stats-grid {
     display: grid;

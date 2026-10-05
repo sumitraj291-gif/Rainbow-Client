@@ -17,6 +17,7 @@ import {
     ShieldAlert,
     AlertCircle
 } from "lucide-react";
+import ExcelToolbar from "../components/ExcelToolbar";
 import "./Customers.css";
 
 const initialForm = {
@@ -240,6 +241,12 @@ const Customers = () => {
                     >
                         <RefreshCw size={17} className={loading ? "animate-spin" : ""} />
                     </button>
+
+                    <ExcelToolbar
+                        moduleName="customers"
+                        displayName="Customers"
+                        onImportDone={fetchCustomers}
+                    />
 
                     <button
                         id="add-customer-button"

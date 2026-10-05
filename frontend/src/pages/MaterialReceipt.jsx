@@ -22,9 +22,12 @@ import {
     ArrowDownToLine,
     ShieldCheck,
     FileText,
-    Boxes
+    Boxes,
+    FileDown
 } from "lucide-react";
 import "./MaterialReceipt.css";
+import ExcelToolbar from "../components/ExcelToolbar";
+import PdfExportModal from "../components/PdfExportModal";
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
@@ -57,6 +60,23 @@ export default function MaterialReceipt() {
     // Modal: Printable GRN
     const [selectedReceipt, setSelectedReceipt] = useState(null);
     const [loadingReceiptDetails, setLoadingReceiptDetails] = useState(false);
+
+    // Modal: Auto-adjusting PDF Export Format Customizer
+    const [pdfConfigModal, setPdfConfigModal] = useState({
+        isOpen: false,
+        documentId: null,
+        documentTitle: "",
+        documentRef: ""
+    });
+
+    const handleOpenPdfModal = (receiptId, grnNumber) => {
+        setPdfConfigModal({
+            isOpen: true,
+            documentId: receiptId,
+            documentTitle: "Inward Goods Receipt Note (GRN)",
+            documentRef: grnNumber
+        });
+    };
 
     // Form State for New Inward GRN
     const [selectedSupplierId, setSelectedSupplierId] = useState("");
@@ -407,6 +427,12 @@ export default function MaterialReceipt() {
                     >
                         <RefreshCw size={15} className={loading ? "mr-spinning" : ""} />
                     </button>
+
+                    <ExcelToolbar
+                        moduleName="material_receipts"
+                        displayName="Material Receipts"
+                        onImportDone={loadAllData}
+                    />
                 </div>
             </div>
 
@@ -548,123 +574,136 @@ export default function MaterialReceipt() {
 
                     {/* Table Card */}
                     <div className="mr-table-card">
-                        <table className="mr-table">
-                            <thead>
-                                <tr>
-                                    <th>GRN # & Date</th>
-                                    <th>Chemical Supplier</th>
-                                    <th>Supplier Invoice / DC</th>
-                                    <th>Inward Logistics</th>
-                                    <th>Weighbridge Net</th>
-                                    <th>Storage Location</th>
-                                    <th>Inward Value (₹)</th>
-                                    <th>QC Status</th>
-                                    <th style={{ textAlign: "right" }}>Action</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {filteredReceipts.length === 0 ? (
+                        <div className="mr-table-responsive">
+                            <table className="mr-table">
+                                <thead>
                                     <tr>
-                                        <td colSpan="9">
-                                            <div className="mr-empty-state">
-                                                <Layers size={32} />
-                                                <p>No Goods Receipt Notes match your search criteria.</p>
-                                            </div>
-                                        </td>
+                                        <th>GRN # & Date</th>
+                                        <th>Chemical Supplier</th>
+                                        <th>Supplier Invoice / DC</th>
+                                        <th>Inward Logistics</th>
+                                        <th>Weighbridge Net</th>
+                                        <th>Storage Location</th>
+                                        <th>Inward Value (₹)</th>
+                                        <th>QC Status</th>
+                                        <th style={{ textAlign: "right" }}>Actions</th>
                                     </tr>
-                                ) : (
-                                    filteredReceipts.map((r) => {
-                                        const grnDate = r.receipt_date
-                                            ? new Date(r.receipt_date).toLocaleDateString("en-IN", {
-                                                  day: "2-digit",
-                                                  month: "short",
-                                                  year: "numeric"
-                                              })
-                                            : "N/A";
-                                        const netKg = Number(r.weighbridge_net_kg || 0);
+                                </thead>
+                                <tbody>
+                                    {filteredReceipts.length === 0 ? (
+                                        <tr>
+                                            <td colSpan="9">
+                                                <div className="mr-empty-state">
+                                                    <Layers size={32} />
+                                                    <p>No Goods Receipt Notes match your search criteria.</p>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ) : (
+                                        filteredReceipts.map((r) => {
+                                            const grnDate = r.receipt_date
+                                                ? new Date(r.receipt_date).toLocaleDateString("en-IN", {
+                                                      day: "2-digit",
+                                                      month: "short",
+                                                      year: "numeric"
+                                                  })
+                                                : "N/A";
+                                            const netKg = Number(r.weighbridge_net_kg || 0);
 
-                                        return (
-                                            <tr key={r.id}>
-                                                <td>
-                                                    <div className="mr-grn-cell">
-                                                        <strong>{r.grn_number}</strong>
-                                                        <span>{grnDate}</span>
-                                                    </div>
-                                                </td>
-                                                <td>
-                                                    <div className="mr-supplier-cell">
-                                                        <strong title={r.supplier_name}>{r.supplier_name}</strong>
-                                                        <span>{r.supplier_city || r.supplier_code}</span>
-                                                    </div>
-                                                </td>
-                                                <td>
-                                                    <div className="mr-invoice-cell">
-                                                        <strong>{r.invoice_number}</strong>
-                                                        <span>DC: {r.supplier_challan_no || "N/A"}</span>
-                                                    </div>
-                                                </td>
-                                                <td>
-                                                    <div className="mr-vehicle-cell">
-                                                        <strong>{r.vehicle_number}</strong>
-                                                        <span>{r.transporter_name || "Direct Inward"}</span>
-                                                    </div>
-                                                </td>
-                                                <td>
-                                                    <div className="mr-weight-badge">
-                                                        {netKg.toLocaleString("en-IN")} <span>KG</span>
-                                                    </div>
-                                                    <div className="mr-weight-sub">
-                                                        {(netKg / 1000).toFixed(2)} MT | {r.total_packages || 0} pkgs
-                                                    </div>
-                                                </td>
-                                                <td>
-                                                    <span style={{ fontSize: "0.75rem", fontFamily: "monospace", color: "#475569" }}>
-                                                        {r.store_location || "MAIN-RAW-WH"}
-                                                    </span>
-                                                </td>
-                                                <td>
-                                                    <span className="mr-amount">
-                                                        ₹{Number(r.total_amount_inr || 0).toLocaleString("en-IN", {
-                                                            minimumFractionDigits: 2,
-                                                            maximumFractionDigits: 2
-                                                        })}
-                                                    </span>
-                                                </td>
-                                                <td>
-                                                    <span
-                                                        className={`mr-status-pill ${
-                                                            r.status === "APPROVED"
-                                                                ? "approved"
-                                                                : r.status === "REJECTED"
-                                                                ? "rejected"
-                                                                : "pending"
-                                                        }`}
-                                                    >
-                                                        {r.status === "APPROVED" ? (
-                                                            <CheckCircle2 size={12} />
-                                                        ) : (
-                                                            <Clock size={12} />
-                                                        )}
-                                                        {r.status}
-                                                    </span>
-                                                </td>
-                                                <td style={{ textAlign: "right" }}>
-                                                    <button
-                                                        type="button"
-                                                        className="mr-action-btn"
-                                                        onClick={() => handleViewGRN(r.id)}
-                                                        title="View / Print Official GRN"
-                                                    >
-                                                        <Eye size={13} />
-                                                        Print GRN
-                                                    </button>
-                                                </td>
-                                            </tr>
-                                        );
-                                    })
-                                )}
-                            </tbody>
-                        </table>
+                                            return (
+                                                <tr key={r.id}>
+                                                    <td>
+                                                        <div className="mr-grn-cell">
+                                                            <strong>{r.grn_number}</strong>
+                                                            <span>{grnDate}</span>
+                                                        </div>
+                                                    </td>
+                                                    <td>
+                                                        <div className="mr-supplier-cell">
+                                                            <strong title={r.supplier_name}>{r.supplier_name}</strong>
+                                                            <span>{r.supplier_city || r.supplier_code}</span>
+                                                        </div>
+                                                    </td>
+                                                    <td>
+                                                        <div className="mr-invoice-cell">
+                                                            <strong>{r.invoice_number}</strong>
+                                                            <span>DC: {r.supplier_challan_no || "N/A"}</span>
+                                                        </div>
+                                                    </td>
+                                                    <td>
+                                                        <div className="mr-vehicle-cell">
+                                                            <strong>{r.vehicle_number}</strong>
+                                                            <span>{r.transporter_name || "Direct Inward"}</span>
+                                                        </div>
+                                                    </td>
+                                                    <td>
+                                                        <div className="mr-weight-badge">
+                                                            {netKg.toLocaleString("en-IN")} <span>KG</span>
+                                                        </div>
+                                                        <div className="mr-weight-sub">
+                                                            {(netKg / 1000).toFixed(2)} MT • {r.total_packages || 0} pkgs
+                                                        </div>
+                                                    </td>
+                                                    <td>
+                                                        <span className="mr-loc-badge">
+                                                            {r.store_location || "MAIN-RAW-WH"}
+                                                        </span>
+                                                    </td>
+                                                    <td>
+                                                        <span className="mr-amount">
+                                                            ₹{Number(r.total_amount_inr || 0).toLocaleString("en-IN", {
+                                                                minimumFractionDigits: 2,
+                                                                maximumFractionDigits: 2
+                                                            })}
+                                                        </span>
+                                                    </td>
+                                                    <td>
+                                                        <span
+                                                            className={`mr-status-pill ${
+                                                                r.status === "APPROVED"
+                                                                    ? "approved"
+                                                                    : r.status === "REJECTED"
+                                                                    ? "rejected"
+                                                                    : "pending"
+                                                            }`}
+                                                        >
+                                                            {r.status === "APPROVED" ? (
+                                                                <CheckCircle2 size={12} />
+                                                            ) : (
+                                                                <Clock size={12} />
+                                                            )}
+                                                            {r.status}
+                                                        </span>
+                                                    </td>
+                                                    <td style={{ textAlign: "right", whiteSpace: "nowrap" }}>
+                                                        <div className="mr-action-cell">
+                                                            <button
+                                                                type="button"
+                                                                className="mr-action-btn view"
+                                                                onClick={() => handleViewGRN(r.id)}
+                                                                title="View / Print Official GRN"
+                                                            >
+                                                                <Eye size={13} />
+                                                                <span>Print GRN</span>
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                className="mr-action-btn pdf"
+                                                                onClick={() => handleOpenPdfModal(r.id, r.grn_number)}
+                                                                title="Configure paper size (A4 / A5 / Letter) & download auto-adjusted PDF"
+                                                            >
+                                                                <FileDown size={13} />
+                                                                <span>PDF</span>
+                                                            </button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </>
             )}
@@ -970,7 +1009,7 @@ export default function MaterialReceipt() {
                                                     />
                                                 </td>
                                                 <td>
-                                                    <strong style={{ fontFamily: "monospace", fontSize: "0.82rem" }}>
+                                                    <strong style={{ fontSize: "0.85rem", fontWeight: "700", color: "#0f172a", fontVariantNumeric: "tabular-nums" }}>
                                                         ₹{rowTotal.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                                     </strong>
                                                 </td>
@@ -1109,6 +1148,16 @@ export default function MaterialReceipt() {
                                 <button
                                     type="button"
                                     className="mr-modal-btn"
+                                    onClick={() => handleOpenPdfModal(selectedReceipt.id, selectedReceipt.grn_number)}
+                                    style={{ background: "#2563eb", color: "#ffffff", borderColor: "#2563eb" }}
+                                    title="Choose page size (A4 / A5 / Letter) and download auto-adjusted PDF"
+                                >
+                                    <FileDown size={14} />
+                                    Configure & Print PDF
+                                </button>
+                                <button
+                                    type="button"
+                                    className="mr-modal-btn"
                                     onClick={() => window.print()}
                                 >
                                     <Printer size={14} />
@@ -1231,26 +1280,26 @@ export default function MaterialReceipt() {
                                     }}
                                 >
                                     <div>
-                                        <span style={{ color: "#64748b", display: "block", fontSize: "0.7rem" }}>
+                                        <span style={{ color: "#64748b", display: "block", fontSize: "0.7rem", fontWeight: "600", textTransform: "uppercase" }}>
                                             GROSS WEIGHBRIDGE
                                         </span>
-                                        <strong style={{ fontFamily: "monospace", fontSize: "0.95rem" }}>
+                                        <strong style={{ fontSize: "0.95rem", fontWeight: "700", color: "#0f172a", fontVariantNumeric: "tabular-nums" }}>
                                             {Number(selectedReceipt.weighbridge_gross_kg || 0).toLocaleString("en-IN")} KG
                                         </strong>
                                     </div>
                                     <div>
-                                        <span style={{ color: "#64748b", display: "block", fontSize: "0.7rem" }}>
+                                        <span style={{ color: "#64748b", display: "block", fontSize: "0.7rem", fontWeight: "600", textTransform: "uppercase" }}>
                                             TARE WEIGHBRIDGE
                                         </span>
-                                        <strong style={{ fontFamily: "monospace", fontSize: "0.95rem" }}>
+                                        <strong style={{ fontSize: "0.95rem", fontWeight: "700", color: "#0f172a", fontVariantNumeric: "tabular-nums" }}>
                                             {Number(selectedReceipt.weighbridge_tare_kg || 0).toLocaleString("en-IN")} KG
                                         </strong>
                                     </div>
                                     <div>
-                                        <span style={{ color: "#2563eb", display: "block", fontSize: "0.7rem", fontWeight: "700" }}>
+                                        <span style={{ color: "#2563eb", display: "block", fontSize: "0.7rem", fontWeight: "700", textTransform: "uppercase" }}>
                                             NET DELIVERED WEIGHT
                                         </span>
-                                        <strong style={{ fontFamily: "monospace", fontSize: "0.95rem", color: "#2563eb" }}>
+                                        <strong style={{ fontSize: "0.95rem", fontWeight: "800", color: "#2563eb", fontVariantNumeric: "tabular-nums" }}>
                                             {Number(selectedReceipt.weighbridge_net_kg || 0).toLocaleString("en-IN")} KG (
                                             {(Number(selectedReceipt.weighbridge_net_kg || 0) / 1000).toFixed(2)} MT)
                                         </strong>
@@ -1278,7 +1327,7 @@ export default function MaterialReceipt() {
                                             selectedReceipt.items.map((item, idx) => (
                                                 <tr key={item.id || idx}>
                                                     <td>{idx + 1}</td>
-                                                    <td style={{ fontFamily: "monospace", fontWeight: "600" }}>
+                                                    <td style={{ fontWeight: "700", color: "#1e40af" }}>
                                                         {item.material_code}
                                                     </td>
                                                     <td>
@@ -1290,21 +1339,21 @@ export default function MaterialReceipt() {
                                                     <td>
                                                         {item.package_type} ({item.number_of_packages || 0} pkgs)
                                                     </td>
-                                                    <td style={{ fontFamily: "monospace", fontSize: "0.72rem" }}>
+                                                    <td style={{ fontSize: "0.75rem", fontWeight: "600", color: "#334155" }}>
                                                         {item.batch_number}
                                                     </td>
-                                                    <td style={{ textAlign: "right", fontFamily: "monospace" }}>
+                                                    <td style={{ textAlign: "right", fontVariantNumeric: "tabular-nums", fontWeight: "600" }}>
                                                         {Number(item.received_quantity).toLocaleString("en-IN")}{" "}
                                                         {item.unit_symbol || "KG"}
                                                     </td>
-                                                    <td style={{ textAlign: "right", fontFamily: "monospace", color: "#059669" }}>
+                                                    <td style={{ textAlign: "right", fontVariantNumeric: "tabular-nums", fontWeight: "600", color: "#059669" }}>
                                                         {Number(item.accepted_quantity).toLocaleString("en-IN")}{" "}
                                                         {item.unit_symbol || "KG"}
                                                     </td>
-                                                    <td style={{ textAlign: "right", fontFamily: "monospace" }}>
+                                                    <td style={{ textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
                                                         ₹{Number(item.rate).toFixed(2)}
                                                     </td>
-                                                    <td style={{ textAlign: "right", fontFamily: "monospace", fontWeight: "700" }}>
+                                                    <td style={{ textAlign: "right", fontVariantNumeric: "tabular-nums", fontWeight: "700", color: "#0f172a" }}>
                                                         ₹{Number(item.total_item_amount).toLocaleString("en-IN", {
                                                             minimumFractionDigits: 2,
                                                             maximumFractionDigits: 2
@@ -1394,6 +1443,16 @@ export default function MaterialReceipt() {
                     </div>
                 </div>
             )}
+
+            {/* Auto-Adjusting PDF Format Selector Modal */}
+            <PdfExportModal
+                isOpen={pdfConfigModal.isOpen}
+                onClose={() => setPdfConfigModal(prev => ({ ...prev, isOpen: false }))}
+                documentType="grn"
+                documentId={pdfConfigModal.documentId}
+                documentTitle={pdfConfigModal.documentTitle}
+                documentRef={pdfConfigModal.documentRef}
+            />
         </div>
     );
 }

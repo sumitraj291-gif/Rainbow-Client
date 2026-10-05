@@ -23,6 +23,7 @@ import {
     ArrowRight
 } from "lucide-react";
 import "./Maintenance.css";
+import ExcelToolbar from "../components/ExcelToolbar";
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
@@ -302,6 +303,11 @@ export default function Maintenance() {
                     >
                         <RefreshCw size={15} />
                     </button>
+                    <ExcelToolbar
+                        moduleName="maintenance"
+                        displayName="Maintenance"
+                        onImportDone={loadData}
+                    />
                 </div>
             </div>
 

@@ -6,14 +6,20 @@ const {
     getProductOptions,
     createProduct,
     updateProduct,
-    deleteProduct
+    deleteProduct,
+    getProductBOM,
+    saveProductBOM,
+    seedDefaultBOM
 } = require("../controllers/productController");
 
 const router = express.Router();
 
 router.get("/", getProducts);
 router.get("/options", getProductOptions);
+router.post("/seed-bom", seedDefaultBOM);
 router.get("/:id", getProductById);
+router.get("/:id/bom", getProductBOM);
+router.post("/:id/bom", saveProductBOM);
 
 router.post("/", createProduct);
 router.put("/:id", updateProduct);

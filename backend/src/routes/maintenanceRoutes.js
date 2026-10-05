@@ -7,6 +7,7 @@ router.get("/stats", maintenanceController.getMaintenanceStats);
 router.get("/machines", maintenanceController.getMachinesList);
 
 // Breakdowns
+router.get("/", maintenanceController.getBreakdowns);
 router.get("/breakdowns", maintenanceController.getBreakdowns);
 router.post("/breakdowns", maintenanceController.reportBreakdown);
 router.put("/breakdowns/:id/resolve", maintenanceController.resolveBreakdown);

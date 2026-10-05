@@ -20,6 +20,7 @@ import {
     Gauge
 } from "lucide-react";
 import "./Machines.css";
+import ExcelToolbar from "../components/ExcelToolbar";
 
 const initialForm = {
     machine_code: "",
@@ -250,6 +251,11 @@ export default function Machines() {
                     >
                         <RefreshCw size={17} className={loading ? "machines-spin" : ""} />
                     </button>
+                    <ExcelToolbar
+                        moduleName="machines"
+                        displayName="Machines"
+                        onImportDone={loadMachines}
+                    />
                     <button
                         type="button"
                         className="machines-btn-primary"

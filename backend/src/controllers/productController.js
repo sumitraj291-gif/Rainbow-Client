@@ -636,11 +636,231 @@ const deleteProduct = async (req, res) => {
     }
 };
 
+/*
+=========================================================
+GET PRODUCT BILL OF MATERIALS (BOM)
+=========================================================
+*/
+const getProductBOM = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        const [productRows] = await pool.query(
+            "SELECT id, product_code, product_name, standard_cost, unit_id FROM products WHERE id = ?",
+            [id]
+        );
+
+        if (productRows.length === 0) {
+            return res.status(404).json({ success: false, message: "Product not found" });
+        }
+
+        const [items] = await pool.query(`
+            SELECT 
+                pb.id,
+                pb.product_id,
+                pb.material_id,
+                pb.quantity_per_unit,
+                pb.wastage_percentage,
+                rm.material_code,
+                rm.material_name,
+                rm.standard_purchase_rate,
+                COALESCE(u.symbol, 'KG') AS unit_symbol,
+                COALESCE(mc.name, 'General') AS category_name,
+                ROUND(pb.quantity_per_unit * (1 + (COALESCE(pb.wastage_percentage, 0) / 100)) * COALESCE(rm.standard_purchase_rate, 0), 2) AS unit_cost_inr
+            FROM product_bom pb
+            JOIN raw_materials rm ON rm.id = pb.material_id
+            LEFT JOIN units u ON u.id = rm.unit_id
+            LEFT JOIN material_categories mc ON mc.id = rm.category_id
+            WHERE pb.product_id = ?
+            ORDER BY rm.category_id ASC, rm.material_name ASC
+        `, [id]);
+
+        // Also fetch active raw materials for dropdown selection
+        const [availableMaterials] = await pool.query(`
+            SELECT 
+                rm.id,
+                rm.material_code,
+                rm.material_name,
+                rm.standard_purchase_rate,
+                COALESCE(u.symbol, 'KG') AS unit_symbol,
+                COALESCE(mc.name, 'General') AS category_name
+            FROM raw_materials rm
+            LEFT JOIN units u ON u.id = rm.unit_id
+            LEFT JOIN material_categories mc ON mc.id = rm.category_id
+            WHERE rm.status = 'ACTIVE'
+            ORDER BY rm.material_name ASC
+        `);
+
+        const totalBOMCost = items.reduce((sum, item) => sum + parseFloat(item.unit_cost_inr || 0), 0);
+
+        res.json({
+            success: true,
+            product: productRows[0],
+            data: items,
+            total_bom_cost: parseFloat(totalBOMCost.toFixed(2)),
+            available_materials: availableMaterials
+        });
+    } catch (error) {
+        console.error("Get Product BOM Error:", error);
+        res.status(500).json({ success: false, message: "Failed to load product BOM", error: error.message });
+    }
+};
+
+/*
+=========================================================
+SAVE / REPLACE PRODUCT BILL OF MATERIALS (BOM)
+=========================================================
+*/
+const saveProductBOM = async (req, res) => {
+    const connection = await pool.getConnection();
+    await connection.beginTransaction();
+    try {
+        const { id } = req.params;
+        const { items } = req.body;
+
+        if (!Array.isArray(items)) {
+            await connection.rollback();
+            return res.status(400).json({ success: false, message: "Items array is required" });
+        }
+
+        // Delete existing BOM for this product
+        await connection.query("DELETE FROM product_bom WHERE product_id = ?", [id]);
+
+        // Insert new items
+        for (const item of items) {
+            const qty = parseFloat(item.quantity_per_unit);
+            const matId = parseInt(item.material_id, 10);
+            if (!isNaN(matId) && !isNaN(qty) && qty > 0) {
+                await connection.query(`
+                    INSERT INTO product_bom (product_id, material_id, quantity_per_unit, wastage_percentage)
+                    VALUES (?, ?, ?, ?)
+                `, [id, matId, qty, parseFloat(item.wastage_percentage || 0)]);
+            }
+        }
+
+        // Calculate total standard BOM cost and update product standard_cost
+        const [costRows] = await connection.query(`
+            SELECT SUM(pb.quantity_per_unit * (1 + (COALESCE(pb.wastage_percentage, 0) / 100)) * COALESCE(rm.standard_purchase_rate, 0)) AS bom_cost
+            FROM product_bom pb
+            JOIN raw_materials rm ON rm.id = pb.material_id
+            WHERE pb.product_id = ?
+        `, [id]);
+
+        const totalCost = costRows[0]?.bom_cost || 0;
+        await connection.query("UPDATE products SET standard_cost = ? WHERE id = ?", [totalCost, id]);
+
+        await connection.commit();
+        res.json({
+            success: true,
+            message: "Bill of Materials (BOM) saved successfully!",
+            bom_cost: parseFloat(Number(totalCost).toFixed(2))
+        });
+    } catch (error) {
+        await connection.rollback();
+        console.error("Save Product BOM Error:", error);
+        res.status(500).json({ success: false, message: "Failed to save product BOM", error: error.message });
+    } finally {
+        connection.release();
+    }
+};
+
+/*
+=========================================================
+SEED DEFAULT BOM FORMULATIONS FOR ALL FACTORY PRODUCTS
+=========================================================
+*/
+const seedDefaultBOM = async (req, res) => {
+    const connection = await pool.getConnection();
+    await connection.beginTransaction();
+    try {
+        const [products] = await connection.query("SELECT id, product_code, product_name FROM products");
+        const [materials] = await connection.query("SELECT id, material_code FROM raw_materials");
+
+        const matMap = {};
+        materials.forEach(m => { matMap[m.material_code] = m.id; });
+
+        let insertedCount = 0;
+
+        for (const p of products) {
+            const code = p.product_code || "";
+            const isDoorMat = code.includes("FM-MAT");
+            const isRoll = code.includes("FM-ROLL");
+
+            // Clear old BOM for this product
+            await connection.query("DELETE FROM product_bom WHERE product_id = ?", [p.id]);
+
+            const bomRecipes = [];
+
+            if (isDoorMat) {
+                // Determine pigment by product code
+                let pigmentId = matMap["RM-PIG-BLU"] || 13;
+                if (code.includes("RED")) pigmentId = matMap["RM-PIG-RED"] || 11;
+                else if (code.includes("GRY")) pigmentId = matMap["RM-PIG-GREY"] || 12;
+
+                bomRecipes.push(
+                    { material_id: matMap["RM-PVC-E68"] || 1, qty: 0.450, waste: 1.5 },
+                    { material_id: matMap["RM-PLAST-DOTP"] || 4, qty: 0.220, waste: 1.0 },
+                    { material_id: matMap["RM-FILL-CACO3"] || 6, qty: 0.160, waste: 1.0 },
+                    { material_id: matMap["RM-BLOW-ADC"] || 8, qty: 0.015, waste: 0.5 },
+                    { material_id: matMap["RM-STAB-ZNCA"] || 9, qty: 0.018, waste: 0.5 },
+                    { material_id: pigmentId, qty: 0.012, waste: 0.5 },
+                    { material_id: matMap["RM-SUB-POLY"] || 10, qty: 0.240, waste: 2.0 }
+                );
+            } else if (isRoll) {
+                bomRecipes.push(
+                    { material_id: matMap["RM-PVC-S65"] || 2, qty: 22.500, waste: 2.0 },
+                    { material_id: matMap["RM-PLAST-DOTP"] || 4, qty: 11.200, waste: 1.0 },
+                    { material_id: matMap["RM-FILL-CACO3"] || 6, qty: 7.500, waste: 1.0 },
+                    { material_id: matMap["RM-STAB-ZNCA"] || 9, qty: 0.850, waste: 0.5 },
+                    { material_id: matMap["RM-COAT-PU"] || 14, qty: 1.200, waste: 1.0 },
+                    { material_id: matMap["KP-180-BF"] || 16, qty: 15.000, waste: 3.0 }
+                );
+            }
+
+            for (const r of bomRecipes) {
+                if (r.material_id) {
+                    await connection.query(`
+                        INSERT INTO product_bom (product_id, material_id, quantity_per_unit, wastage_percentage)
+                        VALUES (?, ?, ?, ?)
+                    `, [p.id, r.material_id, r.qty, r.waste]);
+                    insertedCount++;
+                }
+            }
+
+            // Recalculate cost
+            const [costRows] = await connection.query(`
+                SELECT SUM(pb.quantity_per_unit * (1 + (COALESCE(pb.wastage_percentage, 0) / 100)) * COALESCE(rm.standard_purchase_rate, 0)) AS bom_cost
+                FROM product_bom pb
+                JOIN raw_materials rm ON rm.id = pb.material_id
+                WHERE pb.product_id = ?
+            `, [p.id]);
+
+            const totalCost = costRows[0]?.bom_cost || 0;
+            await connection.query("UPDATE products SET standard_cost = ? WHERE id = ?", [totalCost, p.id]);
+        }
+
+        await connection.commit();
+        res.json({
+            success: true,
+            message: `Successfully seeded Bill of Materials (BOM) recipes across ${products.length} products (${insertedCount} ingredients configured)!`
+        });
+    } catch (error) {
+        await connection.rollback();
+        console.error("Seed BOM Error:", error);
+        res.status(500).json({ success: false, message: "Failed to seed default BOM", error: error.message });
+    } finally {
+        connection.release();
+    }
+};
+
 module.exports = {
     getProducts,
     getProductById,
     getProductOptions,
     createProduct,
     updateProduct,
-    deleteProduct
+    deleteProduct,
+    getProductBOM,
+    saveProductBOM,
+    seedDefaultBOM
 };

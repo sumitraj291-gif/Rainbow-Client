@@ -535,21 +535,140 @@ const createProductionEntry = async (req, res) => {
               )
         `, [production_order_id]);
 
+        /*
+        =========================================================
+        AUTOMATED BOM RAW MATERIAL AUTO-CONSUMPTION ENGINE
+        =========================================================
+        Whenever production output is logged (goodQty > 0 or wastageQty > 0),
+        automatically deduct raw materials based on product_bom (FIFO)
+        and record in stock_transactions & production_materials.
+        */
+        const [bomItems] = await connection.query(`
+            SELECT 
+                pb.material_id,
+                pb.quantity_per_unit,
+                pb.wastage_percentage,
+                rm.material_name,
+                rm.material_code,
+                rm.standard_purchase_rate,
+                COALESCE(u.symbol, 'KG') AS unit_symbol
+            FROM product_bom pb
+            JOIN raw_materials rm ON rm.id = pb.material_id
+            LEFT JOIN units u ON u.id = rm.unit_id
+            WHERE pb.product_id = ?
+        `, [productionOrder.product_id]);
+
+        const totalOutputUnits = Number(goodQty || 0) + Number(wastageQty || 0);
+        const autoConsumedMaterials = [];
+
+        if (bomItems.length > 0 && totalOutputUnits > 0) {
+            for (const bom of bomItems) {
+                const wastageMultiplier = 1 + (Number(bom.wastage_percentage || 0) / 100);
+                const totalRequiredQty = totalOutputUnits * Number(bom.quantity_per_unit) * wastageMultiplier;
+
+                if (totalRequiredQty <= 0) continue;
+
+                // FIFO Batch Deduction from available approved stock
+                const [batches] = await connection.query(`
+                    SELECT id, batch_number, current_quantity, reel_count
+                    FROM material_batches
+                    WHERE material_id = ? AND current_quantity > 0 AND qc_status = 'APPROVED'
+                    ORDER BY received_date ASC, id ASC
+                `, [bom.material_id]);
+
+                let remainingToDeduct = totalRequiredQty;
+                let actualDeducted = 0;
+
+                for (const batch of batches) {
+                    if (remainingToDeduct <= 0) break;
+                    const batchAvail = parseFloat(batch.current_quantity || 0);
+                    const deductThis = Math.min(batchAvail, remainingToDeduct);
+                    const batchReels = parseInt(batch.reel_count || 1, 10);
+                    const deductReels = batchAvail > 0 ? Math.max(1, Math.round((deductThis / batchAvail) * batchReels)) : 0;
+
+                    await connection.query(`
+                        UPDATE material_batches 
+                        SET current_quantity = current_quantity - ?,
+                            reel_count = GREATEST(0, reel_count - ?)
+                        WHERE id = ?
+                    `, [deductThis, deductReels, batch.id]);
+
+                    // Insert audit transaction
+                    await connection.query(`
+                        INSERT INTO stock_transactions (
+                            material_id, batch_id, transaction_type, reference_type, reference_id,
+                            quantity, reel_count, transaction_date, remarks
+                        ) VALUES (?, ?, 'MATERIAL_ISSUE', 'PRODUCTION_ENTRY', ?, ?, ?, NOW(), ?)
+                    `, [
+                        bom.material_id,
+                        batch.id,
+                        result.insertId,
+                        deductThis,
+                        deductReels,
+                        `Auto-BOM Consumption for PO #${productionOrder.production_order_number} (${goodQty} units output)`
+                    ]);
+
+                    remainingToDeduct -= deductThis;
+                    actualDeducted += deductThis;
+                }
+
+                // If warehouse batch stock was less than requirement, log remainder as floor consumption
+                if (remainingToDeduct > 0) {
+                    await connection.query(`
+                        INSERT INTO stock_transactions (
+                            material_id, batch_id, transaction_type, reference_type, reference_id,
+                            quantity, transaction_date, remarks
+                        ) VALUES (?, NULL, 'MATERIAL_ISSUE', 'PRODUCTION_ENTRY', ?, ?, NOW(), ?)
+                    `, [
+                        bom.material_id,
+                        result.insertId,
+                        remainingToDeduct,
+                        `Auto-BOM Floor Consumption for PO #${productionOrder.production_order_number} (Unbatched floor stock)`
+                    ]);
+                    actualDeducted += remainingToDeduct;
+                }
+
+                // Upsert tracking row into production_materials
+                const [pmCheck] = await connection.query(`
+                    SELECT id, consumed_quantity FROM production_materials 
+                    WHERE production_order_id = ? AND material_id = ?
+                `, [production_order_id, bom.material_id]);
+
+                if (pmCheck.length > 0) {
+                    await connection.query(`
+                        UPDATE production_materials 
+                        SET consumed_quantity = consumed_quantity + ?
+                        WHERE id = ?
+                    `, [actualDeducted, pmCheck[0].id]);
+                } else {
+                    await connection.query(`
+                        INSERT INTO production_materials (
+                            production_order_id, material_id, required_quantity, issued_quantity, consumed_quantity
+                        ) VALUES (?, ?, ?, ?, ?)
+                    `, [production_order_id, bom.material_id, totalRequiredQty, actualDeducted, actualDeducted]);
+                }
+
+                autoConsumedMaterials.push({
+                    material_id: bom.material_id,
+                    material_code: bom.material_code,
+                    material_name: bom.material_name,
+                    quantity_consumed: parseFloat(actualDeducted.toFixed(3)),
+                    unit_symbol: bom.unit_symbol
+                });
+            }
+        }
 
         await connection.commit();
 
-
         res.status(201).json({
-
             success: true,
-
-            message:
-                "Production entry created successfully",
-
+            message: autoConsumedMaterials.length > 0
+                ? `Production entry recorded! Automatically deducted ${autoConsumedMaterials.length} BOM raw materials from inventory.`
+                : "Production entry created successfully",
             data: {
-                id: result.insertId
+                id: result.insertId,
+                auto_consumed_materials: autoConsumedMaterials
             }
-
         });
 
     } catch (error) {

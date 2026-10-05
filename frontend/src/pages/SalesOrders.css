@@ -413,23 +413,46 @@
 }
 
 .so-tbl-btn {
-    border: 1px solid #e2e8f0;
-    background: #ffffff;
-    padding: 4px 8px;
-    border-radius: 5px;
-    font-size: 0.74rem;
-    font-weight: 600;
-    color: #475569;
-    cursor: pointer;
-    transition: all 0.15s ease;
     display: inline-flex;
     align-items: center;
+    justify-content: center;
     gap: 4px;
+    height: 28px;
+    padding: 0 9px;
+    border-radius: 5px;
+    font-size: 11.5px;
+    font-weight: 600;
+    border: 1px solid #cbd5e1;
+    background: #ffffff;
+    color: #334155;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.15s ease;
+    box-sizing: border-box;
+    line-height: 1;
 }
 
 .so-tbl-btn:hover {
     background: #f1f5f9;
     color: #0f172a;
+    border-color: #94a3b8;
+}
+
+.so-tbl-btn.pdf {
+    background: #ecfdf5;
+    color: #047857;
+    border-color: #a7f3d0;
+}
+
+.so-tbl-btn.pdf:hover {
+    background: #d1fae5;
+    color: #065f46;
+    border-color: #6ee7b7;
+}
+
+.so-tbl-btn.delete {
+    color: #64748b;
+    padding: 0 7px;
 }
 
 .so-tbl-btn.delete:hover {

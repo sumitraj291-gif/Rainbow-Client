@@ -33,6 +33,8 @@ const employeeRoutes = require("./routes/employeeRoutes");
 const userRoutes = require("./routes/userRoutes");
 const supplierRoutes = require("./routes/supplierRoutes");
 const inventoryRoutes = require("./routes/inventoryRoutes");
+const excelRoutes = require("./routes/excelRoutes");
+const pdfRoutes = require("./routes/pdfRoutes");
 
 // ===============================
 // APP
@@ -138,6 +140,8 @@ app.use("/api/employees", employeeRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/suppliers", supplierRoutes);
 app.use("/api/inventory", inventoryRoutes);
+app.use("/api/excel", excelRoutes);
+app.use("/api/pdf", pdfRoutes);
 
 // ===============================
 // SERVER
@@ -145,11 +149,15 @@ app.use("/api/inventory", inventoryRoutes);
 
 const PORT = process.env.PORT || 5000;
 
-app.listen(PORT, async () => {
-    console.log("----------------------------------------");
-    console.log("Production Management API");
-    console.log(`Server running on http://localhost:${PORT}`);
-    console.log("----------------------------------------");
+if (require.main === module) {
+    app.listen(PORT, async () => {
+        console.log("----------------------------------------");
+        console.log("Production Management API");
+        console.log(`Server running on http://localhost:${PORT}`);
+        console.log("----------------------------------------");
 
-    await ensureDefaultAdminUser();
-});
+        await ensureDefaultAdminUser();
+    });
+}
+
+module.exports = app;

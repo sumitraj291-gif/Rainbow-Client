@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import api from "../services/api";
 import "./ProductionEntries.css";
+import ExcelToolbar from "../components/ExcelToolbar";
 
 const initialForm = {
     production_order_id: "",
@@ -72,6 +73,7 @@ export default function ProductionEntry() {
 
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
+    const [consumedMaterials, setConsumedMaterials] = useState([]);
 
     const loadEntries = async () => {
         try {
@@ -241,11 +243,16 @@ export default function ProductionEntry() {
                 throw new Error(response.data?.message || "Unable to save production entry.");
             }
 
-            setSuccess(editingId ? "Production entry updated successfully." : "Production entry recorded successfully.");
+            if (response.data?.data?.auto_consumed_materials?.length > 0) {
+                setConsumedMaterials(response.data.data.auto_consumed_materials);
+            } else {
+                setConsumedMaterials([]);
+            }
+
+            setSuccess(response.data?.message || (editingId ? "Production entry updated successfully." : "Production entry recorded successfully."));
             closeModal();
             await loadEntries();
             await loadOptions();
-            setTimeout(() => setSuccess(""), 3500);
         } catch (err) {
             console.error("Save Production Entry Error:", err);
             setError(err.response?.data?.message || err.message || "Failed to record production entry.");
@@ -304,6 +311,11 @@ export default function ProductionEntry() {
                     >
                         <RefreshCw size={17} className={loading ? "pe-spin" : ""} />
                     </button>
+                    <ExcelToolbar
+                        moduleName="production_entries"
+                        displayName="Production Entries"
+                        onImportDone={loadEntries}
+                    />
                     <button
                         type="button"
                         className="pe-btn secondary"
@@ -333,6 +345,39 @@ export default function ProductionEntry() {
                     <button type="button" className="pe-alert-close" onClick={() => setSuccess("")}>
                         <X size={14} />
                     </button>
+                </div>
+            )}
+
+            {consumedMaterials && consumedMaterials.length > 0 && (
+                <div className="pe-auto-consumed-card">
+                    <div className="pe-auto-consumed-header">
+                        <div className="pe-auto-consumed-title">
+                            <Sparkles size={16} className="pe-sparkle-icon" />
+                            <strong>Automated BOM Auto-Consumption (Inventory Deducted)</strong>
+                        </div>
+                        <button 
+                            type="button" 
+                            className="pe-alert-close" 
+                            onClick={() => setConsumedMaterials([])}
+                            title="Dismiss"
+                        >
+                            <X size={14} />
+                        </button>
+                    </div>
+                    <p className="pe-auto-consumed-sub">
+                        The following raw materials were automatically deducted from warehouse batches (FIFO) based on product BOM:
+                    </p>
+                    <div className="pe-consumed-chips">
+                        {consumedMaterials.map((mat, idx) => (
+                            <div key={mat.material_id || idx} className="pe-consumed-chip">
+                                <span className="pe-chip-code">{mat.material_code}</span>
+                                <span className="pe-chip-name">{mat.material_name}</span>
+                                <span className="pe-chip-qty">
+                                    -{formatNumber(mat.quantity_consumed)} {mat.unit_symbol}
+                                </span>
+                            </div>
+                        ))}
+                    </div>
                 </div>
             )}
 

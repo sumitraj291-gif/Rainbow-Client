@@ -3,6 +3,7 @@ const { getDashboardOverview } = require("../controllers/dashboardController");
 
 const router = express.Router();
 
+router.get("/", getDashboardOverview);
 router.get("/overview", getDashboardOverview);
 
 module.exports = router;

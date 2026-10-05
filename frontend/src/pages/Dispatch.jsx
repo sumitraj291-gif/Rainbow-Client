@@ -25,9 +25,12 @@ import {
     Eye,
     PackageCheck,
     ChevronRight,
-    Phone
+    Phone,
+    FileDown
 } from "lucide-react";
 import "./Dispatch.css";
+import ExcelToolbar from "../components/ExcelToolbar";
+import PdfExportModal from "../components/PdfExportModal";
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
@@ -89,6 +92,25 @@ export default function Dispatch() {
     const [selectedChallanForPrint, setSelectedChallanForPrint] = useState(null);
     const [showChallanModal, setShowChallanModal] = useState(false);
     const [showGatePassModal, setShowGatePassModal] = useState(false);
+
+    // Auto-adjusting PDF Export Format Customizer
+    const [pdfConfigModal, setPdfConfigModal] = useState({
+        isOpen: false,
+        documentType: "challan",
+        documentId: null,
+        documentTitle: "",
+        documentRef: ""
+    });
+
+    const handleOpenPdfModal = (id, type = "challan", title = "Delivery Challan", ref = "") => {
+        setPdfConfigModal({
+            isOpen: true,
+            documentType: type,
+            documentId: id,
+            documentTitle: title,
+            documentRef: ref
+        });
+    };
 
     // =========================================================
     // INITIAL LOAD
@@ -314,7 +336,7 @@ export default function Dispatch() {
                         className={`dp-tab-btn ${activeTab === "list" ? "active" : ""}`}
                         onClick={() => setActiveTab("list")}
                     >
-                        <FileText size={15} /> All Challans & Gate Passes
+                        <FileText size={14} /> Challans & Passes
                     </button>
                     <button
                         type="button"
@@ -324,7 +346,7 @@ export default function Dispatch() {
                             loadData();
                         }}
                     >
-                        <Plus size={15} /> New Vehicle Loading & Challan
+                        <Plus size={14} /> New Vehicle Loading
                     </button>
                     <button
                         type="button"
@@ -332,8 +354,13 @@ export default function Dispatch() {
                         onClick={loadData}
                         title="Reload Data"
                     >
-                        <RefreshCw size={15} />
+                        <RefreshCw size={14} />
                     </button>
+                    <ExcelToolbar
+                        moduleName="dispatches"
+                        displayName="Dispatches"
+                        onImportDone={loadData}
+                    />
                 </div>
             </div>
 
@@ -457,7 +484,7 @@ export default function Dispatch() {
                                     <th>Roll Manifest Tally</th>
                                     <th>LR & e-Way Bill</th>
                                     <th>Date & Status</th>
-                                    <th style={{ textAlign: "right" }}>Documents & Actions</th>
+                                    <th className="dp-th-actions">Documents & Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -514,7 +541,7 @@ export default function Dispatch() {
                                                     ) : ch.status}
                                                 </span>
                                             </td>
-                                            <td style={{ textAlign: "right" }}>
+                                            <td className="dp-td-actions">
                                                 <div className="dp-action-btns">
                                                     <button
                                                         type="button"
@@ -522,7 +549,7 @@ export default function Dispatch() {
                                                         onClick={() => openPrintView(ch.id, "challan")}
                                                         title="Print Delivery Challan (Commercial Packing Slip)"
                                                     >
-                                                        <FileText size={13} /> Challan
+                                                        <FileText size={12} /> Challan
                                                     </button>
                                                     <button
                                                         type="button"
@@ -530,7 +557,23 @@ export default function Dispatch() {
                                                         onClick={() => openPrintView(ch.id, "gate_pass")}
                                                         title="Print Security Gate Pass"
                                                     >
-                                                        <ShieldCheck size={13} /> Gate Pass
+                                                        <ShieldCheck size={12} /> Gate Pass
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        className="dp-doc-btn pdf"
+                                                        onClick={() => handleOpenPdfModal(ch.id, "challan", "Delivery Challan (Rule 55)", ch.challan_number)}
+                                                        title="Configure paper size (A4 / A5 / Letter) & download auto-adjusted Challan PDF"
+                                                    >
+                                                        <FileDown size={12} /> Challan PDF
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        className="dp-doc-btn gate-pdf"
+                                                        onClick={() => handleOpenPdfModal(ch.id, "gatepass", "Security Gate Pass (Vehicle Outward)", ch.gate_pass_number || ch.challan_number)}
+                                                        title="Configure paper size (A4 / A5 / Letter) & download auto-adjusted Gate Pass PDF"
+                                                    >
+                                                        <FileDown size={12} /> Gate Pass PDF
                                                     </button>
                                                     {ch.status === "LOADED" && (
                                                         <button
@@ -830,6 +873,15 @@ export default function Dispatch() {
                                 <button
                                     type="button"
                                     className="dp-btn-print"
+                                    onClick={() => handleOpenPdfModal(selectedChallanForPrint.id, "challan", "Delivery Challan (Rule 55)", selectedChallanForPrint.challan_number)}
+                                    style={{ background: "#2563eb", color: "#fff" }}
+                                    title="Choose page size (A4 / A5 / Letter) & download auto-adjusted PDF"
+                                >
+                                    <FileDown size={15} /> Configure & Print PDF
+                                </button>
+                                <button
+                                    type="button"
+                                    className="dp-btn-print"
                                     onClick={() => window.print()}
                                 >
                                     <Printer size={15} /> Print Delivery Challan
@@ -1018,6 +1070,15 @@ export default function Dispatch() {
                                 <button
                                     type="button"
                                     className="dp-btn-print"
+                                    onClick={() => handleOpenPdfModal(selectedChallanForPrint.id, "gatepass", "Security Gate Pass", selectedChallanForPrint.gate_pass_number || selectedChallanForPrint.challan_number)}
+                                    style={{ background: "#0284c7", color: "#fff" }}
+                                    title="Choose page size (A4 / A5 / Letter) & download auto-adjusted PDF"
+                                >
+                                    <FileDown size={15} /> Configure & Print PDF
+                                </button>
+                                <button
+                                    type="button"
+                                    className="dp-btn-print"
                                     onClick={() => window.print()}
                                 >
                                     <Printer size={15} /> Print Gate Pass
@@ -1126,6 +1187,16 @@ export default function Dispatch() {
                     </div>
                 </div>
             )}
+
+            {/* Auto-Adjusting PDF Format Selector Modal */}
+            <PdfExportModal
+                isOpen={pdfConfigModal.isOpen}
+                onClose={() => setPdfConfigModal(prev => ({ ...prev, isOpen: false }))}
+                documentType={pdfConfigModal.documentType}
+                documentId={pdfConfigModal.documentId}
+                documentTitle={pdfConfigModal.documentTitle}
+                documentRef={pdfConfigModal.documentRef}
+            />
         </div>
     );
 }

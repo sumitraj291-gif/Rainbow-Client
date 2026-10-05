@@ -19,6 +19,7 @@ import {
     Receipt
 } from "lucide-react";
 import "./Customers.css";
+import ExcelToolbar from "../components/ExcelToolbar";
 
 const initialForm = {
     supplier_code: "",
@@ -226,6 +227,12 @@ export default function Suppliers() {
                     >
                         <RefreshCw size={17} className={loading ? "animate-spin" : ""} />
                     </button>
+
+                    <ExcelToolbar
+                        moduleName="suppliers"
+                        displayName="Suppliers"
+                        onImportDone={fetchSuppliers}
+                    />
 
                     <button
                         className="primary-button cust-primary-btn"
