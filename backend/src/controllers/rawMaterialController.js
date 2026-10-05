@@ -950,6 +950,23 @@ const getInventoryAnalysis = async (req, res) => {
             await seed15DayTransactions();
         }
 
+        // Dynamically check if reel_count column exists in tables
+        let hasMbReel = true;
+        let hasStReel = true;
+        try {
+            const [mbCols] = await pool.query("SHOW COLUMNS FROM material_batches LIKE 'reel_count'");
+            hasMbReel = mbCols.length > 0;
+            const [stCols] = await pool.query("SHOW COLUMNS FROM stock_transactions LIKE 'reel_count'");
+            hasStReel = stCols.length > 0;
+        } catch (_) {
+            hasMbReel = false;
+            hasStReel = false;
+        }
+
+        const mbReelCol = hasMbReel ? "COALESCE(SUM(mb.reel_count), COUNT(mb.id))" : "COUNT(mb.id)";
+        const inwReelCol = hasStReel ? "SUM(COALESCE(reel_count, 1))" : "COUNT(*)";
+        const outwReelCol = hasStReel ? "SUM(COALESCE(reel_count, 1))" : "COUNT(*)";
+
         const query = `
             SELECT 
                 rm.id,
@@ -965,7 +982,7 @@ const getInventoryAnalysis = async (req, res) => {
                 COALESCE(u.symbol, 'KG') AS unit_symbol,
                 COALESCE(u.name, 'Kilogram') AS unit_name,
                 COALESCE(SUM(mb.current_quantity), 0) AS current_stock_qty,
-                COALESCE(SUM(mb.reel_count), COUNT(mb.id)) AS current_reels_nos,
+                ${mbReelCol} AS current_reels_nos,
                 COALESCE(inw.inward_15d_qty, 0) AS inward_15d_qty,
                 COALESCE(inw.inward_15d_reels, 0) AS inward_15d_reels,
                 COALESCE(outw.outward_15d_qty, 0) AS outward_15d_qty,
@@ -978,7 +995,7 @@ const getInventoryAnalysis = async (req, res) => {
                 SELECT 
                     material_id,
                     SUM(quantity) AS inward_15d_qty,
-                    SUM(COALESCE(reel_count, 1)) AS inward_15d_reels
+                    ${inwReelCol} AS inward_15d_reels
                 FROM stock_transactions
                 WHERE transaction_type IN ('PURCHASE', 'ADJUSTMENT_IN')
                   AND transaction_date >= DATE_SUB(NOW(), INTERVAL 15 DAY)
@@ -988,7 +1005,7 @@ const getInventoryAnalysis = async (req, res) => {
                 SELECT 
                     material_id,
                     SUM(quantity) AS outward_15d_qty,
-                    SUM(COALESCE(reel_count, 1)) AS outward_15d_reels
+                    ${outwReelCol} AS outward_15d_reels
                 FROM stock_transactions
                 WHERE transaction_type IN ('MATERIAL_ISSUE', 'ADJUSTMENT_OUT', 'WASTAGE')
                   AND transaction_date >= DATE_SUB(NOW(), INTERVAL 15 DAY)

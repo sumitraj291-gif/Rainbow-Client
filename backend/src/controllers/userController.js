@@ -8,10 +8,22 @@ const getUsers = async (req, res) => {
     try {
         const { search, role, status } = req.query;
 
+        // Dynamically verify if employee_id column exists
+        let hasEmployeeId = true;
+        try {
+            const [cols] = await pool.query("SHOW COLUMNS FROM users LIKE 'employee_id'");
+            hasEmployeeId = cols.length > 0;
+        } catch (_) {
+            hasEmployeeId = false;
+        }
+
+        const employeeField = hasEmployeeId ? "u.employee_id," : "NULL AS employee_id,";
+        const employeeJoin = hasEmployeeId ? "LEFT JOIN employees e ON e.id = u.employee_id" : "LEFT JOIN employees e ON e.email = u.email";
+
         let query = `
             SELECT 
                 u.id,
-                u.employee_id,
+                ${employeeField}
                 u.role_id,
                 u.name,
                 u.email,
@@ -26,7 +38,7 @@ const getUsers = async (req, res) => {
                 COALESCE(e.designation, e2.designation) AS designation
             FROM users u
             LEFT JOIN roles r ON r.id = u.role_id
-            LEFT JOIN employees e ON e.id = u.employee_id
+            ${employeeJoin}
             LEFT JOIN employees e2 ON e2.email = u.email AND e.id IS NULL
             WHERE 1=1
         `;
