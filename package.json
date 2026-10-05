@@ -2,14 +2,17 @@
   "name": "production-management-root",
   "version": "1.0.0",
   "private": true,
+  "workspaces": [
+    "backend",
+    "frontend"
+  ],
   "scripts": {
-    "install:all": "npm install --prefix backend && npm install --prefix frontend",
-    "build": "npm run build --prefix frontend",
+    "build": "npm --prefix frontend install && npm --prefix frontend run build && npm --prefix backend install",
     "start": "node backend/src/server.js",
-    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "install:all": "npm install --prefix backend && npm install --prefix frontend",
+    "build:frontend": "npm run build --prefix frontend",
     "dev:backend": "npm run dev --prefix backend",
     "dev:frontend": "npm run dev --prefix frontend",
-    "build:frontend": "npm run build --prefix frontend",
     "test": "npm test --prefix backend",
     "test:backend": "npm test --prefix backend",
     "test:frontend": "npm run build --prefix frontend"
