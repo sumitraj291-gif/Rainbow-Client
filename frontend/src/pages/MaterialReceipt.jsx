@@ -28,8 +28,7 @@ import {
 import "./MaterialReceipt.css";
 import ExcelToolbar from "../components/ExcelToolbar";
 import PdfExportModal from "../components/PdfExportModal";
-
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+import { API_BASE_URL as API_BASE, authFetch } from "../services/api";
 
 export default function MaterialReceipt() {
     // Tabs: "list" or "new"
@@ -133,7 +132,7 @@ export default function MaterialReceipt() {
     };
 
     const fetchReceipts = async () => {
-        const res = await fetch(`${API_BASE}/material-receipts`);
+        const res = await authFetch(`${API_BASE}/material-receipts`);
         const json = await res.json();
         if (json.success) {
             setReceipts(json.data || []);
@@ -141,7 +140,7 @@ export default function MaterialReceipt() {
     };
 
     const fetchStats = async () => {
-        const res = await fetch(`${API_BASE}/material-receipts/stats`);
+        const res = await authFetch(`${API_BASE}/material-receipts/stats`);
         const json = await res.json();
         if (json.success) {
             setStats(json.data || {});
@@ -149,7 +148,7 @@ export default function MaterialReceipt() {
     };
 
     const fetchSuppliers = async () => {
-        const res = await fetch(`${API_BASE}/material-receipts/suppliers`);
+        const res = await authFetch(`${API_BASE}/material-receipts/suppliers`);
         const json = await res.json();
         if (json.success) {
             setSuppliers(json.data || []);
@@ -157,7 +156,7 @@ export default function MaterialReceipt() {
     };
 
     const fetchMaterials = async () => {
-        const res = await fetch(`${API_BASE}/raw-materials`);
+        const res = await authFetch(`${API_BASE}/raw-materials`);
         const json = await res.json();
         if (json.success) {
             setMaterials(json.data || []);
@@ -250,7 +249,7 @@ export default function MaterialReceipt() {
     const handleViewGRN = async (id) => {
         setLoadingReceiptDetails(true);
         try {
-            const res = await fetch(`${API_BASE}/material-receipts/${id}`);
+            const res = await authFetch(`${API_BASE}/material-receipts/${id}`);
             const json = await res.json();
             if (json.success) {
                 setSelectedReceipt(json.data);
@@ -329,7 +328,7 @@ export default function MaterialReceipt() {
 
         setSubmitting(true);
         try {
-            const res = await fetch(`${API_BASE}/material-receipts`, {
+            const res = await authFetch(`${API_BASE}/material-receipts`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(payload)

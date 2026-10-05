@@ -13,8 +13,7 @@ import {
     RotateCw
 } from "lucide-react";
 import "./PdfExportModal.css";
-
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+import { API_BASE_URL as API_BASE } from "../services/api";
 
 /**
  * Universal Industrial PDF Export & Page Format Customizer

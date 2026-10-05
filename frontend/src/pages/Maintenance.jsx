@@ -24,8 +24,7 @@ import {
 } from "lucide-react";
 import "./Maintenance.css";
 import ExcelToolbar from "../components/ExcelToolbar";
-
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+import { API_BASE_URL as API_BASE, authFetch } from "../services/api";
 
 export default function Maintenance() {
     // Tabs: "machines", "breakdowns", "workorders"
@@ -111,10 +110,10 @@ export default function Maintenance() {
         setError(null);
         try {
             const [sRes, mRes, bRes, wRes] = await Promise.all([
-                fetch(`${API_BASE}/maintenance/stats`),
-                fetch(`${API_BASE}/maintenance/machines`),
-                fetch(`${API_BASE}/maintenance/breakdowns`),
-                fetch(`${API_BASE}/maintenance/work-orders`)
+                authFetch(`${API_BASE}/maintenance/stats`),
+                authFetch(`${API_BASE}/maintenance/machines`),
+                authFetch(`${API_BASE}/maintenance/breakdowns`),
+                authFetch(`${API_BASE}/maintenance/work-orders`)
             ]);
 
             const [sJson, mJson, bJson, wJson] = await Promise.all([
@@ -154,7 +153,7 @@ export default function Maintenance() {
 
         setError(null);
         try {
-            const res = await fetch(`${API_BASE}/maintenance/breakdowns`, {
+            const res = await authFetch(`${API_BASE}/maintenance/breakdowns`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(breakdownForm)
@@ -180,7 +179,7 @@ export default function Maintenance() {
 
         setError(null);
         try {
-            const res = await fetch(`${API_BASE}/maintenance/breakdowns/${selectedTicketForResolve.id}/resolve`, {
+            const res = await authFetch(`${API_BASE}/maintenance/breakdowns/${selectedTicketForResolve.id}/resolve`, {
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(resolveForm)
@@ -208,7 +207,7 @@ export default function Maintenance() {
 
         setError(null);
         try {
-            const res = await fetch(`${API_BASE}/maintenance/work-orders`, {
+            const res = await authFetch(`${API_BASE}/maintenance/work-orders`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(pmForm)

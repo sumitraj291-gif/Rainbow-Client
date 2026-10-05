@@ -1,0 +1,27 @@
+# ========================================================
+# RENDER DEPLOYMENT BLUEPRINT
+# Rainbow Polymers & Carpets - Production Management ERP
+# ========================================================
+
+services:
+  # UNIFIED FULLSTACK SERVICE (Free Tier Friendly: Single Service)
+  # Builds React frontend and serves both Express REST API and static React UI
+  - type: web
+    name: rainbow-production-erp
+    env: node
+    plan: free
+    region: singapore
+    buildCommand: npm run install:all && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: JWT_SECRET
+        generateValue: true
+      - key: DB_SSL
+        value: "true"
+      - key: DATABASE_URL
+        sync: false # Set in Render Dashboard with your Cloud MySQL URL

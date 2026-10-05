@@ -26,8 +26,7 @@ import {
     Flame
 } from "lucide-react";
 import "./RollInspection.css";
-
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+import { API_BASE_URL as API_BASE, authFetch } from "../services/api";
 
 export default function RollInspection() {
     const location = useLocation();
@@ -128,9 +127,9 @@ export default function RollInspection() {
         setError(null);
         try {
             const [insRes, statsRes, rollsRes] = await Promise.all([
-                fetch(`${API_BASE}/roll-inspections`),
-                fetch(`${API_BASE}/roll-inspections/stats`),
-                fetch(`${API_BASE}/carpet-rolls?limit=100`)
+                authFetch(`${API_BASE}/roll-inspections`),
+                authFetch(`${API_BASE}/roll-inspections/stats`),
+                authFetch(`${API_BASE}/carpet-rolls?limit=100`)
             ]);
 
             const insJson = await insRes.json();
@@ -158,7 +157,7 @@ export default function RollInspection() {
         setRollLoading(true);
         setError(null);
         try {
-            const res = await fetch(`${API_BASE}/roll-inspections/roll/${encodeURIComponent(rollNo)}`);
+            const res = await authFetch(`${API_BASE}/roll-inspections/roll/${encodeURIComponent(rollNo)}`);
             const json = await res.json();
             if (json.success && json.data) {
                 setRollData(json.data);
@@ -355,7 +354,7 @@ export default function RollInspection() {
         };
 
         try {
-            const res = await fetch(`${API_BASE}/roll-inspections`, {
+            const res = await authFetch(`${API_BASE}/roll-inspections`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(payload)
@@ -381,7 +380,7 @@ export default function RollInspection() {
 
     const fetchCOADetails = async (id) => {
         try {
-            const res = await fetch(`${API_BASE}/roll-inspections/${id}`);
+            const res = await authFetch(`${API_BASE}/roll-inspections/${id}`);
             const json = await res.json();
             if (json.success && json.data) {
                 setSelectedCOA(json.data);

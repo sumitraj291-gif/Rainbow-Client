@@ -1,5 +1,7 @@
 const express = require("express");
 const cors = require("cors");
+const path = require("path");
+const fs = require("fs");
 require("dotenv").config();
 
 const pool = require("./config/database");
@@ -46,8 +48,17 @@ const app = express();
 // MIDDLEWARE
 // ===============================
 
-// CORS
-app.use(cors());
+// CORS Configuration
+const corsOrigins = process.env.CORS_ORIGIN
+    ? process.env.CORS_ORIGIN.split(",").map((o) => o.trim())
+    : "*";
+
+app.use(cors({
+    origin: corsOrigins,
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"]
+}));
 
 // JSON request body
 app.use(express.json());
@@ -142,6 +153,33 @@ app.use("/api/suppliers", supplierRoutes);
 app.use("/api/inventory", inventoryRoutes);
 app.use("/api/excel", excelRoutes);
 app.use("/api/pdf", pdfRoutes);
+
+// ===============================
+// API 404 CATCH-ALL (UNMATCHED /api ROUTES)
+// ===============================
+app.use("/api", (req, res) => {
+    res.status(404).json({
+        success: false,
+        message: `API endpoint ${req.method} ${req.originalUrl} not found`
+    });
+});
+
+// ===============================
+// STATIC FRONTEND SERVING (PRODUCTION & RENDER UNIFIED SERVICE)
+// ===============================
+const frontendDistPath = path.resolve(__dirname, "../../frontend/dist");
+if (fs.existsSync(frontendDistPath)) {
+    console.log(`[Static] Serving frontend SPA from ${frontendDistPath}`);
+    app.use(express.static(frontendDistPath));
+
+    // Handle React client-side SPA routing (Express 5 compatible)
+    app.use((req, res, next) => {
+        if (req.method === "GET" && !req.path.startsWith("/api")) {
+            return res.sendFile(path.join(frontendDistPath, "index.html"));
+        }
+        next();
+    });
+}
 
 // ===============================
 // SERVER

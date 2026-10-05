@@ -31,8 +31,7 @@ import {
 import "./Dispatch.css";
 import ExcelToolbar from "../components/ExcelToolbar";
 import PdfExportModal from "../components/PdfExportModal";
-
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+import { API_BASE_URL as API_BASE, authFetch } from "../services/api";
 
 export default function Dispatch() {
     // Tabs: "list" or "new"
@@ -124,10 +123,10 @@ export default function Dispatch() {
         setError(null);
         try {
             const [challansRes, statsRes, readyRes, custRes] = await Promise.all([
-                fetch(`${API_BASE}/dispatches`),
-                fetch(`${API_BASE}/dispatches/stats`),
-                fetch(`${API_BASE}/dispatches/ready-rolls`),
-                fetch(`${API_BASE}/customers`)
+                authFetch(`${API_BASE}/dispatches`),
+                authFetch(`${API_BASE}/dispatches/stats`),
+                authFetch(`${API_BASE}/dispatches/ready-rolls`),
+                authFetch(`${API_BASE}/customers`)
             ]);
 
             const [cJson, sJson, rJson, cuJson] = await Promise.all([
@@ -233,7 +232,7 @@ export default function Dispatch() {
         };
 
         try {
-            const res = await fetch(`${API_BASE}/dispatches`, {
+            const res = await authFetch(`${API_BASE}/dispatches`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(payload)

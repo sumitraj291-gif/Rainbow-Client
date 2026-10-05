@@ -29,8 +29,7 @@ import {
 } from "lucide-react";
 import "./RawMaterials.css";
 import ExcelToolbar from "../components/ExcelToolbar";
-
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+import { API_BASE_URL as API_BASE, authFetch } from "../services/api";
 
 export default function RawMaterials() {
     const location = useLocation();
@@ -153,12 +152,12 @@ export default function RawMaterials() {
         setError(null);
         try {
             const [matRes, statsRes, formRes, mixRes, metaRes, analysisRes] = await Promise.all([
-                fetch(`${API_BASE}/raw-materials`),
-                fetch(`${API_BASE}/raw-materials/stats`),
-                fetch(`${API_BASE}/raw-materials/formulations`),
-                fetch(`${API_BASE}/raw-materials/mixing-batches`),
-                fetch(`${API_BASE}/raw-materials/metadata`),
-                fetch(`${API_BASE}/raw-materials/analysis`)
+                authFetch(`${API_BASE}/raw-materials`),
+                authFetch(`${API_BASE}/raw-materials/stats`),
+                authFetch(`${API_BASE}/raw-materials/formulations`),
+                authFetch(`${API_BASE}/raw-materials/mixing-batches`),
+                authFetch(`${API_BASE}/raw-materials/metadata`),
+                authFetch(`${API_BASE}/raw-materials/analysis`)
             ]);
 
             const [mJson, sJson, fJson, bJson, metaJson, aJson] = await Promise.all([
@@ -245,7 +244,7 @@ export default function RawMaterials() {
         };
 
         try {
-            const res = await fetch(`${API_BASE}/raw-materials/mixing-batches`, {
+            const res = await authFetch(`${API_BASE}/raw-materials/mixing-batches`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(payload)
@@ -276,7 +275,7 @@ export default function RawMaterials() {
         setError(null);
         setAddSubmitting(true);
         try {
-            const res = await fetch(`${API_BASE}/raw-materials`, {
+            const res = await authFetch(`${API_BASE}/raw-materials`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(addForm)
@@ -319,7 +318,7 @@ export default function RawMaterials() {
         setError(null);
         setAdjustSubmitting(true);
         try {
-            const res = await fetch(`${API_BASE}/raw-materials/${adjustTargetMaterial.id}/adjust-stock`, {
+            const res = await authFetch(`${API_BASE}/raw-materials/${adjustTargetMaterial.id}/adjust-stock`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(adjustForm)
@@ -350,7 +349,7 @@ export default function RawMaterials() {
         setError(null);
         setEditSubmitting(true);
         try {
-            const res = await fetch(`${API_BASE}/raw-materials/${editMaterial.id}`, {
+            const res = await authFetch(`${API_BASE}/raw-materials/${editMaterial.id}`, {
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(editForm)
@@ -379,7 +378,7 @@ export default function RawMaterials() {
         if (!window.confirm(`Are you sure you want to deactivate "${name}" from inventory?`)) return;
         setError(null);
         try {
-            const res = await fetch(`${API_BASE}/raw-materials/${id}`, { method: "DELETE" });
+            const res = await authFetch(`${API_BASE}/raw-materials/${id}`, { method: "DELETE" });
             const json = await res.json();
             if (json.success) {
                 setSuccessMessage(`Material "${name}" removed.`);
@@ -396,7 +395,7 @@ export default function RawMaterials() {
     // Issue to Line
     const handleIssueBatch = async (batchId) => {
         try {
-            const res = await fetch(`${API_BASE}/raw-materials/mixing-batches/${batchId}/issue`, {
+            const res = await authFetch(`${API_BASE}/raw-materials/mixing-batches/${batchId}/issue`, {
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ destination_line: "PVC Coating Line 01" })
