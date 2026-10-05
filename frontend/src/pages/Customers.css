@@ -326,13 +326,15 @@
     background: #ffffff;
     border: 1px solid #e2e8f0;
     border-radius: 10px;
-    overflow: hidden;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
 }
 
 .cust-table,
 .customers-table {
     width: 100%;
+    min-width: 650px;
     border-collapse: collapse;
     text-align: left;
 }
@@ -825,3 +827,235 @@
         grid-template-columns: repeat(2, 1fr);
     }
 }
+
+/* =========================================================
+   MOBILE RESPONSIVE SYSTEM (<= 768px)
+   ========================================================= */
+@media (max-width: 768px) {
+    .customers-page {
+        gap: 12px;
+        padding-bottom: 24px;
+    }
+
+    /* Header card & action buttons */
+    .customers-header-card {
+        padding: 14px 16px;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+    }
+
+    .customers-header-info h1 {
+        font-size: 1.25rem;
+    }
+
+    .customers-header-info p {
+        font-size: 0.78rem;
+    }
+
+    .customers-header-actions {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px;
+        width: 100%;
+    }
+
+    .cust-refresh-btn {
+        flex: 0 0 38px;
+        height: 38px;
+    }
+
+    .customers-header-actions .excel-toolbar-buttons {
+        display: flex;
+        flex: 1 1 auto;
+        gap: 6px;
+    }
+
+    .customers-header-actions .excel-btn {
+        flex: 1 1 auto;
+        justify-content: center;
+        padding: 0 8px;
+        font-size: 11.5px;
+        height: 38px;
+    }
+
+    .cust-primary-btn {
+        width: 100%;
+        order: 3;
+        justify-content: center;
+        height: 40px;
+        font-size: 0.85rem;
+    }
+
+    /* KPI Cards - 2x2 grid */
+    .customers-stats-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 8px !important;
+    }
+
+    .cust-stat-card {
+        padding: 10px 12px !important;
+        gap: 10px !important;
+        border-radius: 8px !important;
+    }
+
+    .cust-stat-icon {
+        width: 36px !important;
+        height: 36px !important;
+        border-radius: 8px !important;
+        flex-shrink: 0 !important;
+    }
+
+    .cust-stat-icon svg {
+        width: 18px !important;
+        height: 18px !important;
+    }
+
+    .cust-stat-label {
+        font-size: 0.68rem !important;
+    }
+
+    .cust-stat-value {
+        font-size: 1.15rem !important;
+    }
+
+    /* Filter Bar */
+    .customers-filter-bar,
+    .customers-toolbar-card {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 10px !important;
+        padding: 12px 14px !important;
+    }
+
+    .cust-search-wrap,
+    .cust-search-form {
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+        padding: 8px 12px !important;
+        box-sizing: border-box !important;
+    }
+
+    .cust-filter-group {
+        display: flex !important;
+        width: 100% !important;
+        gap: 8px !important;
+    }
+
+    .cust-filter-select {
+        flex: 1 1 auto !important;
+        min-width: 0 !important;
+        height: 38px !important;
+    }
+
+    .cust-filter-group .cust-primary-btn {
+        flex: 0 0 auto !important;
+        width: auto !important;
+        height: 38px !important;
+        order: initial !important;
+        padding: 0 14px !important;
+    }
+
+    /* Table Container Touch Scroll */
+    .customers-table-card {
+        border-radius: 8px !important;
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+    }
+
+    .cust-table,
+    .customers-table {
+        min-width: 680px !important;
+    }
+
+    .cust-table th,
+    .customers-table th {
+        padding: 10px 12px !important;
+        font-size: 0.7rem !important;
+    }
+
+    .cust-table td,
+    .customers-table td {
+        padding: 10px 12px !important;
+        font-size: 0.8rem !important;
+    }
+
+    /* Modal dialogs */
+    .cust-modal-overlay,
+    .cust-modal-backdrop {
+        padding: 10px !important;
+        align-items: flex-end !important;
+    }
+
+    .cust-modal-card,
+    .cust-modal-dialog {
+        width: 100% !important;
+        max-width: 100% !important;
+        max-height: calc(100dvh - 20px) !important;
+        border-radius: 16px 16px 10px 10px !important;
+        margin: 0 !important;
+    }
+
+    .cust-modal-card.detail-card {
+        max-width: 100% !important;
+    }
+
+    .cust-modal-header {
+        padding: 14px 16px !important;
+    }
+
+    .cust-modal-title h2,
+    .cust-modal-header h2 {
+        font-size: 1.05rem !important;
+    }
+
+    .cust-modal-body {
+        padding: 14px 16px !important;
+        gap: 14px !important;
+        max-height: calc(100dvh - 140px) !important;
+        overflow-y: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+    }
+
+    .cust-form-row,
+    .cust-form-row.three,
+    .cust-form-grid {
+        grid-template-columns: 1fr !important;
+        gap: 10px !important;
+    }
+
+    .cust-form-grid .span-2 {
+        grid-column: span 1 !important;
+    }
+
+    .cust-detail-grid {
+        grid-template-columns: 1fr !important;
+        gap: 12px !important;
+    }
+
+    .cust-detail-item {
+        grid-column: span 1 !important;
+    }
+
+    .cust-modal-footer {
+        padding: 12px 16px !important;
+        display: flex !important;
+        gap: 8px !important;
+        position: sticky !important;
+        bottom: 0 !important;
+        background: #f8fafc !important;
+        z-index: 10 !important;
+    }
+
+    .cust-modal-footer button {
+        flex: 1 1 0 !important;
+        height: 42px !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        font-size: 0.88rem !important;
+    }
+}
+
