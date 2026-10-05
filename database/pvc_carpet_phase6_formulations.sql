@@ -2,7 +2,7 @@
 -- PVC CARPET PHASE 6: RAW MATERIALS, FORMULATIONS & PASTE MIXING
 -- =========================================================
 
-USE production_management;
+-- USE production_management;
 
 -- 1. Insert realistic PVC Raw Material Categories
 INSERT IGNORE INTO material_categories (id, name, description) VALUES

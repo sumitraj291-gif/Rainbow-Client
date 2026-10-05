@@ -2,7 +2,7 @@
 -- PVC CARPET PHASE 8: INBOUND MATERIAL RECEIPT (GRN) & SUPPLIERS
 -- =========================================================
 
-USE production_management;
+-- USE production_management;
 
 -- 1. Seed Realistic PVC Chemical Suppliers
 INSERT INTO suppliers (id, supplier_code, company_name, contact_person, phone, email, gst_number, address, city, state, pincode, payment_terms, status)

@@ -2,7 +2,7 @@
 -- PVC CARPET PHASE 5: DISPATCH CHALLANS & OUTWARD GATE PASS
 -- =========================================================
 
-USE production_management;
+-- USE production_management;
 
 -- 1. Create table for Dispatch Delivery Challans & Gate Passes
 CREATE TABLE IF NOT EXISTS dispatch_challans (

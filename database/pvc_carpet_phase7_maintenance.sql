@@ -2,7 +2,7 @@
 -- PVC CARPET PHASE 7: PLANT MAINTENANCE & MACHINE BREAKDOWNS
 -- =========================================================
 
-USE production_management;
+-- USE production_management;
 
 -- 1. Seed Comprehensive PVC Carpet Manufacturing Equipment Roster
 INSERT INTO machines (id, machine_code, machine_name, machine_type, manufacturer, model_number, serial_number, capacity_per_hour, status, installation_date)

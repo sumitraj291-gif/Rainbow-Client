@@ -5,7 +5,7 @@ const fs = require("fs");
 require("dotenv").config();
 
 const pool = require("./config/database");
-const { ensureDefaultAdminUser } = require("./config/bootstrap");
+const { ensureDefaultAdminUser, autoMigrateDatabase } = require("./config/bootstrap");
 
 // ===============================
 // ROUTES
@@ -186,6 +186,27 @@ app.use("/api/excel", excelRoutes);
 app.use("/api/pdf", pdfRoutes);
 
 // ===============================
+// SYSTEM AUTO-MIGRATION ROUTE
+// ===============================
+app.get("/api/system/migrate", async (req, res) => {
+    try {
+        const result = await autoMigrateDatabase();
+        await ensureDefaultAdminUser();
+        res.json({
+            success: true,
+            message: "Database schema migration executed",
+            result
+        });
+    } catch (err) {
+        res.status(500).json({
+            success: false,
+            message: "Database migration failed",
+            error: err.message
+        });
+    }
+});
+
+// ===============================
 // API 404 CATCH-ALL (UNMATCHED /api ROUTES)
 // ===============================
 app.use("/api", (req, res) => {
@@ -221,6 +242,7 @@ if (require.main === module) {
         console.log(`Server running on http://localhost:${PORT}`);
         console.log("----------------------------------------");
 
+        await autoMigrateDatabase();
         await ensureDefaultAdminUser();
     });
 }

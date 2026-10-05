@@ -1,4 +1,4 @@
-USE production_management;
+-- USE production_management;
 
 -- =========================================================
 -- PVC CARPET ERP - PHASE 3 DATABASE MIGRATION
